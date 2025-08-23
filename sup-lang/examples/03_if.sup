@@ -1,0 +1,14 @@
+sup
+  set a to 7
+  set b to 3
+  if a is greater than b then
+    print a
+  end if
+  if b is less than a then
+    print b
+  end if
+  if a is equal to b then
+    print 999
+  end if
+bye
+

@@ -1,0 +1,18 @@
+sup
+  try
+    throw "oops!"
+  catch err
+    print "caught:"
+    print err
+  finally
+    print "cleanup done"
+  end try
+
+  try
+    throw "boom"
+  finally
+    print "this runs before the crash"
+  end try
+bye
+
+

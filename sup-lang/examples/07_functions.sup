@@ -1,0 +1,10 @@
+sup
+  define function called area with width and height
+    set result to multiply width and height
+    return result
+  end function
+
+  print call area with 5 and 6
+bye
+
+

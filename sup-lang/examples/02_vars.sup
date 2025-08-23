@@ -1,0 +1,8 @@
+sup
+  set a to add 10 and 5
+  print the result
+  print subtract 3 from a
+  set total to multiply a and 2
+  print divide total by 4
+bye
+

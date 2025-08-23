@@ -1,0 +1,81 @@
+{
+  "add": ["add", "plus", "sum"],
+  "subtract": ["subtract", "minus", "less", "decrease"],
+  "multiply": ["multiply", "times", "product"],
+  "divide": ["divide", "over", "by"],
+  "print": ["print", "show", "display", "echo"],
+  "result": ["result", "answer", "value"],
+  "if": ["if"],
+  "endif": ["end if", "endif"],
+  "else": ["else"],
+  "repeat": ["repeat"],
+  "endrepeat": ["end repeat", "endrepeat"],
+  "while": ["while"],
+  "endwhile": ["end while", "endwhile"],
+  "foreach": ["for each"],
+  "endfor": ["end for", "endfor"],
+  "is_greater": ["is greater than", "greater than", "more than"],
+  "is_less": ["is less than", "less than", "fewer than"],
+  "is_equal": ["is equal to", "equals", "equal to", "is"],
+  "is_not_equal": ["is not equal to", "not equal to", "does not equal"],
+  "is_greater_equal": ["is greater than or equal to", "greater than or equal to", ">=", "at least"],
+  "is_less_equal": ["is less than or equal to", "less than or equal to", "<=", "at most"],
+  "and": ["and"],
+  "or": ["or"],
+  "not": ["not"],
+  "from": ["from"],
+  "by_kw": ["by"],
+  "make": ["make", "create"],
+  "list": ["list"],
+  "map": ["map", "dictionary", "dict"],
+  "of": ["of"],
+  "in": ["in"],
+  "push": ["push", "append"],
+  "pop": ["pop"],
+  "get": ["get"],
+  "delete": ["delete", "remove"],
+  "length_kw": ["length"],
+  "upper": ["upper", "uppercase"],
+  "lower": ["lower", "lowercase"],
+  "concat": ["concat", "concatenate", "join"],
+  "power": ["power", "pow"],
+  "sqrt": ["sqrt", "square root"],
+  "absolute": ["absolute", "abs"],
+  "define": ["define"],
+  "function": ["function"],
+  "called": ["called"],
+  "with": ["with"],
+  "return": ["return"],
+  "endfunction": ["end function", "endfunction"],
+  "call": ["call"],
+  "ask": ["ask"],
+  "for": ["for"],
+  "the": ["the"],
+  "set": ["set"],
+  "to": ["to"],
+  "then": ["then"],
+  "times": ["times"],
+  "sup": ["sup"],
+  "bye": ["bye"],
+  "note": ["note"]
+  ,"try": ["try"]
+  ,"catch": ["catch"]
+  ,"finally": ["finally"]
+  ,"end_try": ["end try", "endtry"]
+  ,"throw": ["throw", "raise"]
+  ,"import": ["import"]
+  ,"as": ["as"]
+  ,"min": ["min", "minimum"]
+  ,"max": ["max", "maximum"]
+  ,"floor": ["floor"]
+  ,"ceil": ["ceil", "ceiling"]
+  ,"trim": ["trim", "strip"]
+  ,"contains": ["contains", "includes"]
+  ,"join": ["join"]
+  ,"now": ["now"]
+  ,"read_file": ["read file", "readfile"]
+  ,"write_file": ["write file", "writefile"]
+  ,"json_parse": ["json parse"]
+  ,"json_stringify": ["json stringify"]
+}
+

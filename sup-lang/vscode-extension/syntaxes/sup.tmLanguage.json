@@ -1,0 +1,11 @@
+{
+  "scopeName": "source.sup",
+  "patterns": [
+    { "match": "\\b(sup|bye|set|to|print|ask|if|then|end if|else|repeat|end repeat|while|end while|for each|end for|define|function|end function|return|try|catch|finally|end try|import|from|as)\\b", "name": "keyword.control.sup" },
+    { "match": "\\b(add|subtract|multiply|divide|make|list|map|push|pop|get|delete|length|and|from|by|of|in|times)\\b", "name": "support.function.sup" },
+    { "match": "\"[^\"]*\"", "name": "string.quoted.double.sup" },
+    { "match": "-?\\b\\d+(?:\\.\\d+)?\\b", "name": "constant.numeric.sup" },
+    { "match": "\\b(is greater than|is less than|is equal to|is not equal to|is greater than or equal to|is less than or equal to)\\b", "name": "keyword.operator.comparison.sup" }
+  ]
+}
+

@@ -1,0 +1,6 @@
+sup
+  print subtract 45 and 35
+  set x to 100
+  print subtract 3 from x
+bye
+

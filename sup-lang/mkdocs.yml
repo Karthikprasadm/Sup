@@ -1,0 +1,8 @@
+site_name: Sup Language
+nav:
+  - Home: index.md
+  - Language Spec: spec.md
+  - Standard Library: stdlib.md
+theme:
+  name: readthedocs
+

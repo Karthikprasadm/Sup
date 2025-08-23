@@ -1,0 +1,16 @@
+{
+  "name": "sup-language-support",
+  "displayName": "Sup Language Support",
+  "publisher": "sup-lang",
+  "version": "0.0.1",
+  "engines": { "vscode": "^1.70.0" },
+  "contributes": {
+    "languages": [
+      { "id": "sup", "aliases": ["Sup"], "extensions": [".sup"] }
+    ],
+    "grammars": [
+      { "language": "sup", "scopeName": "source.sup", "path": "syntaxes/sup.tmLanguage.json" }
+    ]
+  }
+}
+

@@ -1,0 +1,14 @@
+sup
+  set x to 0
+  while x is less than 3
+    print x
+    set x to add x and 1
+  end while
+
+  make list of 1, 2, 3
+  for each item in list
+    print item
+  end for
+bye
+
+

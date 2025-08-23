@@ -1,0 +1,10 @@
+sup
+  import mathlib
+  print mathlib.pi
+  print call mathlib.square with 7
+
+  from mathlib import square
+  print call square with 3
+bye
+
+

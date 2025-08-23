@@ -1,0 +1,13 @@
+sup
+  note this is a mixed example
+  set x to add 2 and 3
+  print the result
+  set y to subtract 3 from x
+  if y is greater than 1 then
+    repeat 2 times
+      print multiply y and 10
+    end repeat
+  end if
+  print divide y by 2
+bye
+

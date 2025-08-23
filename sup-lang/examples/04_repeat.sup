@@ -1,0 +1,8 @@
+sup
+  set a to 2
+  set b to 3
+  repeat 3 times
+    print multiply a and b
+  end repeat
+bye
+

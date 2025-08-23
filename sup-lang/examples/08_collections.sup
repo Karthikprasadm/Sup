@@ -1,0 +1,23 @@
+sup
+make list of 1, 2, 3
+push 4 to list
+print the list
+pop from list
+print the list
+
+make map
+set "name" to "Karthik" in map
+set "age" to 21 in map
+print get "name" from map
+delete "age" from map
+print the map
+
+set word to "hello"
+print upper of word
+print length of word
+
+print power of 2 and 5
+print absolute of -42
+bye
+
+
