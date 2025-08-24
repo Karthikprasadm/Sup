@@ -21,6 +21,16 @@ Features!
 
 Install
 -------
+Quick (recommended) with pipx:
+```
+pipx install sup-lang
+```
+Upgrade later:
+```
+pipx upgrade sup-lang
+```
+
+Or with pip:
 ```
 pip install sup-lang
 ```
@@ -64,6 +74,19 @@ pytest -q sup-lang
 Release
 -------
 Releases are automated via GitHub Actions (tag `v*` triggers build → PyPI publish and VS Code `.vsix` artifact). Add `PYPI_API_TOKEN` to repository secrets.
+
+Ecosystem installers (optional)
+-------------------------------
+Homebrew (macOS/Linux, when tap is published):
+```
+brew tap Karthikprasadm/tap
+brew install sup
+```
+
+Chocolatey (Windows, when package is published):
+```
+choco install sup
+```
 
 License
 -------
