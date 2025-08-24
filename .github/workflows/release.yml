@@ -25,6 +25,7 @@ jobs:
         with:
           password: ${{ secrets.PYPI_API_TOKEN }}
           packages-dir: sup-lang/dist
+          skip-existing: true
 
   vsix:
     runs-on: ubuntu-latest
