@@ -1,0 +1,8 @@
+# Code owners for automatic review requests
+# Syntax: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+linkedin: https://www.linkedin.com/in/karthik-prasad-m/
+
+* @karthikprasadm
+sup-lang/** @karthikprasadm
+sup-lang/vscode-extension/** @wingspawn
