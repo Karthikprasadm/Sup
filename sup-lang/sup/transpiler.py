@@ -42,6 +42,11 @@ class _PythonEmitter:
         self.indent += 1
         self.w("__main__()")
         self.indent -= 1
+        self.w("else:")
+        self.indent += 1
+        self.w("# Initialize module state on import")
+        self.w("__main__()")
+        self.indent -= 1
         return "\n".join(self.lines) + "\n"
 
     def emit_function(self, fn: AST.FunctionDef) -> None:
@@ -59,6 +64,8 @@ class _PythonEmitter:
     def emit_stmt(self, node: AST.Node) -> None:
         if isinstance(node, AST.Assignment):
             value = self.emit_expr(node.expr)
+            # Ensure variables assigned inside functions (including __main__) are module globals
+            self.w(f"global {node.name}")
             self.w(f"{node.name} = {value}")
             self.w(f"last_result = {node.name}")
             return

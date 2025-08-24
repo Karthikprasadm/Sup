@@ -1,5 +1,6 @@
 # Transpiled from sup
 from sys import stdout
+last_result = None
 
 
 def __main__():
@@ -10,4 +11,7 @@ def __main__():
     print(square(3))
 
 if __name__ == '__main__':
+    __main__()
+else:
+    # Initialize module state on import
     __main__()
