@@ -5,15 +5,15 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
       <link rel="shortcut icon" href="../img/favicon.ico" />
-    <title>Language Spec - SUP Language</title>
+    <title>Quickstart - SUP Language</title>
     <link rel="stylesheet" href="../css/theme.css" />
     <link rel="stylesheet" href="../css/theme_extra.css" />
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
     
       <script>
         // Current page data
-        var mkdocs_page_name = "Language Spec";
-        var mkdocs_page_input_path = "spec.md";
+        var mkdocs_page_name = "Quickstart";
+        var mkdocs_page_input_path = "quickstart.md";
         var mkdocs_page_url = null;
       </script>
     
@@ -43,16 +43,30 @@
                 <li class="toctree-l1"><a class="reference internal" href="..">Home</a>
                 </li>
               </ul>
-              <ul class="current">
-                <li class="toctree-l1 current"><a class="reference internal current" href="#">Language Spec</a>
-    <ul class="current">
-    <li class="toctree-l2"><a class="reference internal" href="#design-goals-faq">Design goals (FAQ)</a>
-    </li>
-    </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../spec/">Language Spec</a>
                 </li>
               </ul>
-              <ul>
-                <li class="toctree-l1"><a class="reference internal" href="../quickstart/">Quickstart</a>
+              <ul class="current">
+                <li class="toctree-l1 current"><a class="reference internal current" href="#">Quickstart</a>
+    <ul class="current">
+    <li class="toctree-l2"><a class="reference internal" href="#install">Install</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#hello-world">Hello world</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#variables-and-arithmetic">Variables and arithmetic</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#control-flow">Control flow</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#functions">Functions</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#errors-and-imports">Errors and imports</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#transpile-to-python">Transpile to Python</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#project-transpile-entry-imports">Project transpile (entry + imports)</a>
+    </li>
+    </ul>
                 </li>
               </ul>
               <ul>
@@ -73,7 +87,7 @@
         <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
   <ul class="wy-breadcrumbs">
     <li><a href=".." class="icon icon-home" aria-label="Docs"></a></li>
-      <li class="breadcrumb-item active">Language Spec</li>
+      <li class="breadcrumb-item active">Quickstart</li>
     <li class="wy-breadcrumbs-aside">
     </li>
   </ul>
@@ -82,31 +96,69 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
             <div class="section" itemprop="articleBody">
               
-                <h1 id="language-specification">Language Specification</h1>
-<p>Grammar highlights:
-- Program starts with <code>sup</code> and ends with <code>bye</code>.
-- Assignments: <code>set x to add 2 and 3</code>
-- Print: <code>print the result</code> or <code>print &lt;expr&gt;</code>
-- Input: <code>ask for name</code>
-- If/Else: <code>if a is greater than b then ... else ... end if</code>
-- While: <code>while cond ... end while</code>
-- For Each: <code>for each item in list ... end for</code>
-- Errors: <code>try ... catch e ... finally ... end try</code>, <code>throw &lt;expr&gt;</code>
-- Imports: <code>import foo</code>, <code>from foo import bar as baz</code></p>
-<p>Booleans and comparisons: <code>and</code>, <code>or</code>, <code>not</code>, <code>==</code>, <code>!=</code>, <code>&lt;</code>, <code>&gt;</code>, <code>&lt;=</code>, <code>&gt;=</code>.</p>
-<h2 id="design-goals-faq">Design goals (FAQ)</h2>
-<ul>
-<li>Readable: strict grammar that reads like English</li>
-<li>Deterministic: no magical state; explicit evaluation order</li>
-<li>Helpful errors: line numbers and suggestions when possible</li>
-<li>Progressive: interpreter first, transpiler available for ecosystem integration</li>
-</ul>
+                <h1 id="quickstart">Quickstart</h1>
+<h2 id="install">Install</h2>
+<pre><code>pip install sup-lang
+</code></pre>
+<h2 id="hello-world">Hello world</h2>
+<p>Create <code>hello.sup</code>:</p>
+<pre><code>sup
+  print &quot;Hello, SUP!&quot;
+bye
+</code></pre>
+<p>Run:</p>
+<pre><code>sup hello.sup
+</code></pre>
+<h2 id="variables-and-arithmetic">Variables and arithmetic</h2>
+<pre><code>sup
+  set x to add 2 and 3
+  print the result
+  print subtract 3 from x
+bye
+</code></pre>
+<h2 id="control-flow">Control flow</h2>
+<pre><code>sup
+  set n to 5
+  if n is greater than 3 then
+    print &quot;big&quot;
+  else
+    print &quot;small&quot;
+  end if
+bye
+</code></pre>
+<h2 id="functions">Functions</h2>
+<pre><code>sup
+  define function called square with x
+    return multiply x and x
+  end function
+
+  print call square with 7
+bye
+</code></pre>
+<h2 id="errors-and-imports">Errors and imports</h2>
+<pre><code>sup
+  try
+    throw &quot;oops&quot;
+  catch e
+    print e
+  finally
+    print &quot;done&quot;
+  end try
+bye
+</code></pre>
+<h2 id="transpile-to-python">Transpile to Python</h2>
+<pre><code>sup --emit python hello.sup
+</code></pre>
+<h2 id="project-transpile-entry-imports">Project transpile (entry + imports)</h2>
+<pre><code>sup transpile sup-lang/examples/06_mixed.sup --out dist_py
+python dist_py/run.py
+</code></pre>
               
             </div>
           </div><footer>
     <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
-        <a href=".." class="btn btn-neutral float-left" title="Home"><span class="icon icon-circle-arrow-left"></span> Previous</a>
-        <a href="../quickstart/" class="btn btn-neutral float-right" title="Quickstart">Next <span class="icon icon-circle-arrow-right"></span></a>
+        <a href="../spec/" class="btn btn-neutral float-left" title="Language Spec"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+        <a href="../stdlib/" class="btn btn-neutral float-right" title="Standard Library">Next <span class="icon icon-circle-arrow-right"></span></a>
     </div>
 
   <hr/>
@@ -129,10 +181,10 @@
   <span class="rst-current-version" data-toggle="rst-current-version">
     
     
-      <span><a href=".." style="color: #fcfcfc">&laquo; Previous</a></span>
+      <span><a href="../spec/" style="color: #fcfcfc">&laquo; Previous</a></span>
     
     
-      <span><a href="../quickstart/" style="color: #fcfcfc">Next &raquo;</a></span>
+      <span><a href="../stdlib/" style="color: #fcfcfc">Next &raquo;</a></span>
     
   </span>
 </div>
