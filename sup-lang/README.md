@@ -2,6 +2,8 @@
 
 An English-like programming language (MVP) that emphasizes readability with deterministic semantics.
 
+![SUP Demo](assets/demo.gif)
+
 ### Quickstart
 
 1. Create a virtual environment and install:
