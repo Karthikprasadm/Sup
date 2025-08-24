@@ -831,6 +831,9 @@ class Parser:
             node = AST.Identifier(name=str(t.value))
             node.line = t.line
             return node
+        # Allow function calls as values
+        if tok.type == "CALL":
+            return self.call_expr()
         # Nested expression allowed
         if tok.type in {"ADD", "SUB", "MUL", "DIV"}:
             return self.expression()

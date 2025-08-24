@@ -14,3 +14,10 @@ Grammar highlights:
 
 Booleans and comparisons: `and`, `or`, `not`, `==`, `!=`, `<`, `>`, `<=`, `>=`.
 
+Design goals (FAQ)
+------------------
+- Readable: strict grammar that reads like English
+- Deterministic: no magical state; explicit evaluation order
+- Helpful errors: line numbers and suggestions when possible
+- Progressive: interpreter first, transpiler available for ecosystem integration
+

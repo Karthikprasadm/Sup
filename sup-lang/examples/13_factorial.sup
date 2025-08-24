@@ -1,0 +1,12 @@
+sup
+  define function called fact with n
+    if n is less than or equal to 1 then
+      return 1
+    end if
+    return multiply n and call fact with subtract n and 1
+  end function
+
+  print call fact with 5
+bye
+
+

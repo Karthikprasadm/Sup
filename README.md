@@ -1,7 +1,7 @@
 SUP – a human‑readable programming language in plain English
 ===========================================================
 
-[![PyPI](https://img.shields.io/pypi/v/sup-lang)](https://pypi.org/project/sup-lang/) [![CI](https://github.com/Karthikprasadm/Sup/actions/workflows/ci.yml/badge.svg)](https://github.com/Karthikprasadm/Sup/actions/workflows/ci.yml) [![Docs](https://img.shields.io/badge/docs-online-blue)](<URL>) [![Coverage](https://img.shields.io/codecov/c/github/Karthikprasadm/Sup)](https://codecov.io/gh/Karthikprasadm/Sup)
+[![PyPI](https://img.shields.io/pypi/v/sup-lang)](https://pypi.org/project/sup-lang/) [![CI](https://github.com/Karthikprasadm/Sup/actions/workflows/ci.yml/badge.svg)](https://github.com/Karthikprasadm/Sup/actions/workflows/ci.yml) [![Docs](https://img.shields.io/badge/docs-online-blue)](https://github.com/Karthikprasadm/Sup/tree/main/sup-lang/docs) [![Coverage](https://img.shields.io/codecov/c/github/Karthikprasadm/Sup)](https://codecov.io/gh/Karthikprasadm/Sup)
 
 Sup is a tiny, readable programming language whose code looks like English sentences but keeps deterministic, strict semantics. It ships with a parser, AST, interpreter, CLI, a Python transpiler, examples, tests, and CI.
 

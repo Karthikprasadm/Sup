@@ -155,28 +155,29 @@ def transpile_project(entry_file: str, out_dir: str) -> None:
 
 
 def main(argv: Optional[list[str]] = None) -> int:
-    parser = argparse.ArgumentParser(prog="sup", description="Sup language CLI")
-    sub = parser.add_subparsers(dest="cmd")
+    # Make CLI robust: treat 'transpile' as a dedicated mode; otherwise accept 'file' and '--emit'.
+    if argv is None:
+        argv = sys.argv[1:]
 
-    # default run/REPL mode
-    parser.add_argument("file", nargs="?", help="Path to .sup file to run")
-    parser.add_argument("--emit", choices=["python"], help="Transpile to target language and print")
-
-    # transpile project
-    p_tr = sub.add_parser("transpile", help="Transpile a sup program (and its imports) to Python files")
-    p_tr.add_argument("entry", help="Entry .sup file")
-    p_tr.add_argument("--out", required=True, help="Output directory for .py files")
-
-    args = parser.parse_args(argv)
-
-    if args.cmd == "transpile":
+    # Route explicitly to transpile mode if first token is 'transpile'
+    if len(argv) > 0 and argv[0] == "transpile":
+        p_tr = argparse.ArgumentParser(prog="sup transpile", description="Transpile a sup program (and its imports) to Python files")
+        p_tr.add_argument("entry", help="Entry .sup file")
+        p_tr.add_argument("--out", required=True, help="Output directory for .py files")
+        tr_args = p_tr.parse_args(argv[1:])
         try:
-            transpile_project(args.entry, args.out)
-            print(f"Transpiled to {args.out}")
+            transpile_project(tr_args.entry, tr_args.out)
+            print(f"Transpiled to {tr_args.out}")
             return 0
         except Exception as e:
             sys.stderr.write(str(e) + "\n")
             return 2
+
+    # Default mode: run a file or start a REPL; optional --emit python
+    parser = argparse.ArgumentParser(prog="sup", description="Sup language CLI")
+    parser.add_argument("file", nargs="?", help="Path to .sup file to run")
+    parser.add_argument("--emit", choices=["python"], help="Transpile to target language and print")
+    args = parser.parse_args(argv)
 
     if args.file:
         if args.emit:
