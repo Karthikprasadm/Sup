@@ -1,5 +1,14 @@
 Sup Language Support
 ====================
+Sup Language Support
+====================
+
+Basic syntax highlighting for SUP (`.sup`).
+
+Install from VSIX:
+```
+code --install-extension sup-language-support-0.0.1.vsix
+```
 
 Syntax highlighting for `.sup` files.
 

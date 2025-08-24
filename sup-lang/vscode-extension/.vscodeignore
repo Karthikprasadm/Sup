@@ -1,0 +1,17 @@
+.git/
+node_modules/
+**/*.map
+**/.DS_Store
+**/*.ts
+**/*.ps1
+**/*.bat
+**/*.cmd
+**/*.sh
+**/*.pyc
+**/__pycache__/
+**/.pytest_cache/
+**/.venv/
+**/dist/
+**/build/
+**/*.egg-info/
+

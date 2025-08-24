@@ -1,9 +1,17 @@
 {
   "name": "sup-language-support",
-  "displayName": "Sup Language Support",
-  "publisher": "sup-lang",
-  "version": "0.0.1",
+  "displayName": "SUP – English‑like Language Syntax",
+  "description": "Basic syntax highlighting for the SUP programming language (English-like).",
+  "publisher": "wingspawn",
+  "version": "0.0.3",
   "engines": { "vscode": "^1.70.0" },
+  "categories": ["Programming Languages"],
+  "keywords": ["sup", "sup language", "english-like", "language", "syntax"],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Karthikprasadm/Sup"
+  },
+  "license": "MIT",
   "contributes": {
     "languages": [
       { "id": "sup", "aliases": ["Sup"], "extensions": [".sup"] }
