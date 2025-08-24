@@ -1,11 +1,13 @@
-Sup – an English‑like programming language
-=========================================
+SUP – a human‑readable programming language in plain English
+===========================================================
 
-[PyPI](https://pypi.org/project/sup-lang/) • [Docs (MkDocs)](sup-lang/docs/) • [Examples](sup-lang/examples/)
+[![PyPI](https://img.shields.io/pypi/v/sup-lang)](https://pypi.org/project/sup-lang/) [![CI](https://github.com/Karthikprasadm/Sup/actions/workflows/ci.yml/badge.svg)](https://github.com/Karthikprasadm/Sup/actions/workflows/ci.yml) [![Docs](https://img.shields.io/badge/docs-online-blue)](<URL>) [![Coverage](https://img.shields.io/codecov/c/github/Karthikprasadm/Sup)](https://codecov.io/gh/Karthikprasadm/Sup)
 
 Sup is a tiny, readable programming language whose code looks like English sentences but keeps deterministic, strict semantics. It ships with a parser, AST, interpreter, CLI, a Python transpiler, examples, tests, and CI.
 
-Features
+![SUP Demo](assets/demo.gif)
+
+Features!
 --------
 - Programs start with `sup` and end with `bye`
 - Variables and arithmetic in English: `set x to add 2 and 3`
