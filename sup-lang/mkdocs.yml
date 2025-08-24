@@ -1,4 +1,4 @@
-site_name: Sup Language
+site_name: SUP Language
 nav:
   - Home: index.md
   - Language Spec: spec.md

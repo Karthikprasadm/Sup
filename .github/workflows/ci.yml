@@ -19,7 +19,15 @@ jobs:
           python -m pip install -U pip
           python -m pip install -e ./sup-lang
           python -m pip install pytest
-      - name: Test
+      - name: Run tests with coverage
         run: |
-          python -m pytest -q sup-lang
+          python -m pip install pytest-cov
+          pytest --cov=sup --cov-report=xml
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          files: ./coverage.xml
+          flags: unittests
+          fail_ci_if_error: false
+          token: ${{ secrets.CODECOV_TOKEN }}
 
