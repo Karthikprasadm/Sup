@@ -56,6 +56,18 @@ sup transpile sup-lang/examples/06_mixed.sup --out dist_py
 python dist_py/run.py
 ```
 
+Editor support
+--------------
+- VS Code extension: [wingspawn.sup-language-support](https://marketplace.visualstudio.com/items?itemName=wingspawn.sup-language-support)
+- Install from Marketplace:
+```
+code --install-extension wingspawn.sup-language-support
+```
+- Or from local VSIX (immediate):
+```
+code --install-extension sup-lang\\vscode-extension\\sup-language-support-0.0.3.vsix
+```
+
 Docs & Examples
 ---------------
 - Quick tour and grammar live in `sup-lang/docs/` (GitHub Pages via Actions)

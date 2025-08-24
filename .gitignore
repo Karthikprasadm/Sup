@@ -1,0 +1,3 @@
+*.vsix
+sup-lang/vscode-extension/*.vsix
+
