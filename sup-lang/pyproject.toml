@@ -23,9 +23,9 @@ classifiers = [
 ]
 
 [project.urls]
-Homepage = "https://example.com/sup-lang"
-Repository = "https://example.com/sup-lang/repo"
-Issues = "https://example.com/sup-lang/issues"
+Homepage = "https://github.com/Karthikprasadm/Sup"
+Repository = "https://github.com/Karthikprasadm/Sup"
+Issues = "https://github.com/Karthikprasadm/Sup/issues"
 
 [project.scripts]
 sup = "sup.cli:main"

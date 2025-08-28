@@ -188,6 +188,19 @@ class Lexer:
             "power": ("POWER", None),
             "sqrt": ("SQRT", None),
             "absolute": ("ABS", None),
+            # Additional stdlib/builtins
+            "min": ("MIN", None),
+            "max": ("MAX", None),
+            "floor": ("FLOOR", None),
+            "ceil": ("CEIL", None),
+            "trim": ("TRIM", None),
+            "contains": ("CONTAINS", None),
+            "join": ("JOIN", None),
+            "now": ("NOW", None),
+            "read_file": ("READ_FILE", None),
+            "write_file": ("WRITE_FILE", None),
+            "json_parse": ("JSON_PARSE", None),
+            "json_stringify": ("JSON_STRINGIFY", None),
             "define": ("DEFINE", None),
             "function": ("FUNCTION", None),
             "called": ("CALLED", None),
@@ -600,7 +613,12 @@ class Parser:
         # Builtins and collections
         if tok.type == "MAKE":
             return self.make_expr()
-        if tok.type in {"PUSH", "POP", "GET", "DELETE", "LENGTH", "UPPER", "LOWER", "CONCAT", "POWER", "SQRT", "ABS"}:
+        if tok.type in {
+            "PUSH", "POP", "GET", "DELETE", "LENGTH",
+            "UPPER", "LOWER", "CONCAT", "POWER", "SQRT", "ABS",
+            "MIN", "MAX", "FLOOR", "CEIL", "TRIM", "NOW",
+            "CONTAINS", "JOIN", "READ_FILE", "WRITE_FILE", "JSON_PARSE", "JSON_STRINGIFY",
+        }:
             return self.collection_or_builtin()
         return self.value()
 
@@ -677,7 +695,8 @@ class Parser:
             node.line = start.line
             return node
         # Builtin string/math operations with 'of' and/or binary forms
-        if tok.type in {"UPPER", "LOWER", "SQRT", "ABS", "MIN", "MAX", "FLOOR", "CEIL", "TRIM", "NOW"}:
+        # Unary/zero-arg builtins
+        if tok.type in {"UPPER", "LOWER", "SQRT", "ABS", "FLOOR", "CEIL", "TRIM", "NOW"}:
             start = self.advance()
             name = tok.type.lower()
             args: List[AST.Node] = []
@@ -696,6 +715,7 @@ class Parser:
             node = AST.BuiltinCall(name="concat", args=[a, b])
             node.line = start.line
             return node
+        # Binary builtins
         if tok.type in {"POWER", "MIN", "MAX", "CONTAINS"}:
             start = self.advance()
             self.expect("OF", f"Expected 'of' after '{tok.type.lower()}'.")
@@ -745,15 +765,7 @@ class Parser:
             node = AST.BuiltinCall(name="json_stringify", args=[v])
             node.line = start.line
             return node
-        if tok.type == "POWER":
-            start = self.advance()
-            self.expect("OF", "Expected 'of' after 'power'.")
-            a = self.value()
-            self.expect("AND", "Expected 'and' in power.")
-            b = self.value()
-            node = AST.BuiltinCall(name="power", args=[a, b])
-            node.line = start.line
-            return node
+        # No more builtins
         raise SupSyntaxError(message="Unsupported builtin or collection operation.")
 
     def add_expr(self) -> AST.Binary:

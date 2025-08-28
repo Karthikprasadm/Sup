@@ -1,6 +1,12 @@
-## Sup Language
+## SUP — English-like Programming Language
 
-An English-like programming language (MVP) that emphasizes readability with deterministic semantics.
+An English-like programming language focused on readability with deterministic semantics.
+
+[![CI](https://github.com/Karthikprasadm/Sup/actions/workflows/ci.yml/badge.svg)](https://github.com/Karthikprasadm/Sup/actions/workflows/ci.yml)
+[![Docs](https://img.shields.io/badge/docs-mkdocs-blue)](https://karthikprasadm.github.io/Sup)
+[![PyPI](https://img.shields.io/pypi/v/sup-lang.svg)](https://pypi.org/project/sup-lang/)
+[![VS Code](https://img.shields.io/badge/VS%20Code-Extension-blue)](https://marketplace.visualstudio.com/items?itemName=wingspawn.sup-language-support)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](../LICENSE)
 
 ![SUP Demo](assets/demo.gif)
 
@@ -18,7 +24,7 @@ pip install -e .
 sup examples/06_mixed.sup
 ```
 
-3. Run tests:
+3. Run tests (with coverage in CI):
 ```
 pip install pytest
 pytest
@@ -94,6 +100,15 @@ Transpiler to Python:
 ```
 sup --emit python examples/07_functions.sup
 ```
+
+Transpile a project (entry + imports) to Python files:
+```
+sup transpile examples/12_imports.sup --out dist_py
+python dist_py/run.py
+```
+Notes:
+- The transpiler performs a DFS on imports and writes sanitized module names into `dist_py/`.
+- `run.py` calls the transpiled entry module's `__main__()` to execute top-level code.
 
 ### Phase 3: Collections and Stdlib
 
