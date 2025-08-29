@@ -1,4 +1,33 @@
 name: Bug report
+description: File a bug report
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to fill out this bug report!
+  - type: input
+    id: version
+    attributes:
+      label: SUP version
+      description: Output of `sup --version`
+    validations:
+      required: false
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: Also tell us, what did you expect to happen?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Minimal `.sup` example if possible
+    validations:
+      required: false
+name: Bug report
 description: File a bug report to help us improve SUP
 labels: [bug]
 assignees: []

@@ -2,8 +2,7 @@ from sup.cli import run_source
 
 
 def test_while_and_foreach():
-    code = (
-        """
+    code = """
 sup
   set x to 0
   while x is less than 3
@@ -17,7 +16,5 @@ sup
   end for
 bye
 """.strip()
-    )
     out = run_source(code)
     assert out.splitlines() == ["0", "1", "2", "1", "2", "3"]
-

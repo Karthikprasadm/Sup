@@ -1,8 +1,7 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from typing import Dict, List, Optional
 import os
+from dataclasses import dataclass, field
 
 from . import ast as AST
 from .errors import SupRuntimeError
@@ -10,8 +9,8 @@ from .errors import SupRuntimeError
 
 @dataclass
 class IOHooks:
-    stdin: Optional[str] = None
-    outputs: List[str] = field(default_factory=list)
+    stdin: str | None = None
+    outputs: list[str] = field(default_factory=list)
 
     def read_input(self) -> str:
         if self.stdin is None:
@@ -31,14 +30,14 @@ class IOHooks:
 
 class Interpreter:
     def __init__(self) -> None:
-        self.env: Dict[str, object] = {}
-        self.functions: Dict[str, AST.FunctionDef] = {}
-        self.module_cache: Dict[str, Dict[str, object]] = {}
+        self.env: dict[str, object] = {}
+        self.functions: dict[str, AST.FunctionDef] = {}
+        self.module_cache: dict[str, dict[str, object]] = {}
         self.loading_modules: set[str] = set()
-        self.last_result: Optional[object] = None
+        self.last_result: object | None = None
         self.io = IOHooks()
 
-    def run(self, program: AST.Program, *, stdin: Optional[str] = None) -> str:
+    def run(self, program: AST.Program, *, stdin: str | None = None) -> str:
         self.io.stdin = stdin
         self.eval_program(program)
         return "".join(self.io.outputs)
@@ -47,7 +46,7 @@ class Interpreter:
         for stmt in program.statements:
             self.eval(stmt)
 
-    def eval(self, node: AST.Node) -> Optional[object]:
+    def eval(self, node: AST.Node) -> object | None:
         if isinstance(node, AST.Assignment):
             value = self.eval(node.expr)
             self.env[node.name.lower()] = value
@@ -68,7 +67,7 @@ class Interpreter:
                 for s in node.body or []:
                     self.eval(s)
             else:
-                for s in (node.else_body or []):
+                for s in node.else_body or []:
                     self.eval(s)
             return None
         if isinstance(node, AST.While):
@@ -99,7 +98,10 @@ class Interpreter:
             try:
                 iterations = int(count_val)  # type: ignore[arg-type]
             except Exception:
-                raise SupRuntimeError(message="Repeat count must be a number.", line=getattr(node, "line", None))
+                raise SupRuntimeError(
+                    message="Repeat count must be a number.",
+                    line=getattr(node, "line", None),
+                )
             for _ in range(iterations):
                 for s in node.body:
                     self.eval(s)
@@ -109,7 +111,7 @@ class Interpreter:
             self.last_result = value
             return value
         if isinstance(node, AST.TryCatch):
-            error: Optional[Exception] = None
+            error: Exception | None = None
             try:
                 for s in node.body:
                     self.eval(s)
@@ -144,7 +146,9 @@ class Interpreter:
             ns = self._import_module(node.module)
             for name, alias in node.names:
                 if name not in ns:
-                    raise SupRuntimeError(message=f"Module '{node.module}' has no symbol '{name}'.")
+                    raise SupRuntimeError(
+                        message=f"Module '{node.module}' has no symbol '{name}'."
+                    )
                 self.env[(alias or name).lower()] = ns[name]
             return None
         if isinstance(node, AST.FunctionDef):
@@ -162,7 +166,7 @@ class Interpreter:
             self.last_result = lst
             return lst
         if isinstance(node, AST.MakeMap):
-            d: Dict[object, object] = {}
+            d: dict[object, object] = {}
             self.env["map"] = d
             self.last_result = d
             return d
@@ -218,9 +222,9 @@ class Interpreter:
             return target
         if isinstance(node, AST.Length):
             target = self.eval(node.target)
-            l = len(target)  # type: ignore[arg-type]
-            self.last_result = l
-            return l
+            length_value = len(target)  # type: ignore[arg-type]
+            self.last_result = length_value
+            return length_value
         if isinstance(node, AST.BuiltinCall):
             return self._eval_builtin(node)
         if isinstance(node, AST.Binary):
@@ -245,7 +249,9 @@ class Interpreter:
                 else:
                     raise SupRuntimeError(message=f"Unknown operator {node.op}.")
             except ZeroDivisionError:
-                raise SupRuntimeError(message="Division by zero.", line=getattr(node, "line", None))
+                raise SupRuntimeError(
+                    message="Division by zero.", line=getattr(node, "line", None)
+                )
             self.last_result = res
             return res
         if isinstance(node, AST.Identifier):
@@ -261,7 +267,10 @@ class Interpreter:
             # Allow implicit references to 'list' and 'map' if they were just created as last_result
             if name in {"list", "map"} and isinstance(self.last_result, (list, dict)):
                 return self.last_result
-            raise SupRuntimeError(message=f"Undefined variable '{node.name}'.", line=getattr(node, "line", None))
+            raise SupRuntimeError(
+                message=f"Undefined variable '{node.name}'.",
+                line=getattr(node, "line", None),
+            )
         if isinstance(node, AST.String):
             return node.value
         if isinstance(node, AST.Number):
@@ -280,7 +289,7 @@ class Interpreter:
             return self._compare(self.eval(node.left), node.op, self.eval(node.right))
         raise SupRuntimeError(message=f"Unsupported AST node {type(node).__name__}.")
 
-    def _compare(self, left: object, op: Optional[str], right: object) -> bool:  # type: ignore[override]
+    def _compare(self, left: object, op: str | None, right: object) -> bool:  # type: ignore[override]
         if op == ">":
             return self._num(left) > self._num(right)
         if op == "<":
@@ -323,12 +332,13 @@ class Interpreter:
         name = node.name
         if name == "now":
             import datetime as _dt
+
             res = _dt.datetime.now().isoformat()
             self.last_result = res
             return res
         if name == "read_file":
             path = str(self.eval(node.args[0]))
-            with open(path, "r", encoding="utf-8") as f:
+            with open(path, encoding="utf-8") as f:
                 res = f.read()
             self.last_result = res
             return res
@@ -341,12 +351,14 @@ class Interpreter:
             return True
         if name == "json_parse":
             import json as _json
+
             s = str(self.eval(node.args[0]))
             res = _json.loads(s)
             self.last_result = res
             return res
         if name == "json_stringify":
             import json as _json
+
             v = self.eval(node.args[0])
             res = _json.dumps(v)
             self.last_result = res
@@ -365,12 +377,14 @@ class Interpreter:
             return float(res)
         if name == "floor":
             import math
+
             a = self._num(self.eval(node.args[0]))
             res = math.floor(a)
             self.last_result = float(res)
             return float(res)
         if name == "ceil":
             import math
+
             a = self._num(self.eval(node.args[0]))
             res = math.ceil(a)
             self.last_result = float(res)
@@ -445,15 +459,23 @@ class Interpreter:
                 target = self.env[mod].get(sym)
                 if isinstance(target, AST.FunctionDef):
                     return self._call_fn_def(target, node.args)
-                raise SupRuntimeError(message=f"Undefined function '{node.name}'.", line=getattr(node, "line", None))
+                raise SupRuntimeError(
+                    message=f"Undefined function '{node.name}'.",
+                    line=getattr(node, "line", None),
+                )
         # direct function from env via from-import
         if name in self.env and isinstance(self.env[name], AST.FunctionDef):
             return self._call_fn_def(self.env[name], node.args)  # type: ignore[arg-type]
         if name not in self.functions:
-            raise SupRuntimeError(message=f"Undefined function '{node.name}'.", line=getattr(node, "line", None))
+            raise SupRuntimeError(
+                message=f"Undefined function '{node.name}'.",
+                line=getattr(node, "line", None),
+            )
         fn = self.functions[name]
         if len(node.args) != len(fn.params):
-            raise SupRuntimeError(message=f"Function '{fn.name}' expects {len(fn.params)} argument(s) but got {len(node.args)}.")
+            raise SupRuntimeError(
+                message=f"Function '{fn.name}' expects {len(fn.params)} argument(s) but got {len(node.args)}."
+            )
         # Evaluate args
         arg_vals = [self.eval(a) for a in node.args]
         # New scope
@@ -463,7 +485,7 @@ class Interpreter:
             for pname, pval in zip(fn.params, arg_vals):
                 self.env[pname.lower()] = pval
             # Execute body
-            ret_val: Optional[object] = None
+            ret_val: object | None = None
             try:
                 for s in fn.body:
                     self.eval(s)
@@ -479,16 +501,18 @@ class Interpreter:
         finally:
             self.env = saved_env
 
-    def _call_fn_def(self, fn: AST.FunctionDef, arg_nodes: List[AST.Node]) -> object:
+    def _call_fn_def(self, fn: AST.FunctionDef, arg_nodes: list[AST.Node]) -> object:
         if len(arg_nodes) != len(fn.params):
-            raise SupRuntimeError(message=f"Function '{fn.name}' expects {len(fn.params)} argument(s) but got {len(arg_nodes)}.")
+            raise SupRuntimeError(
+                message=f"Function '{fn.name}' expects {len(fn.params)} argument(s) but got {len(arg_nodes)}."
+            )
         arg_vals = [self.eval(a) for a in arg_nodes]
         saved_env = self.env.copy()
         try:
             self.env = self.env.copy()
             for pname, pval in zip(fn.params, arg_vals):
                 self.env[pname.lower()] = pval
-            ret_val: Optional[object] = None
+            ret_val: object | None = None
             try:
                 for s in fn.body:
                     self.eval(s)
@@ -501,12 +525,14 @@ class Interpreter:
         finally:
             self.env = saved_env
 
-    def _import_module(self, module: str) -> Dict[str, object]:
+    def _import_module(self, module: str) -> dict[str, object]:
         key = module.lower()
         if key in self.module_cache:
             return self.module_cache[key]
         if key in self.loading_modules:
-            raise SupRuntimeError(message=f"Circular import detected for module '{module}'.")
+            raise SupRuntimeError(
+                message=f"Circular import detected for module '{module}'."
+            )
         # Resolve path
         search_paths = [os.getcwd()]
         env_path = os.environ.get("SUP_PATH")
@@ -521,9 +547,10 @@ class Interpreter:
         if path is None:
             raise SupRuntimeError(message=f"Cannot find module '{module}'.")
         # Load file and execute in fresh interpreter sharing module cache
-        with open(path, "r", encoding="utf-8") as f:
+        with open(path, encoding="utf-8") as f:
             src = f.read()
         from .parser import Parser
+
         parser = Parser()
         program = parser.parse(src)
         self.loading_modules.add(key)
@@ -535,7 +562,7 @@ class Interpreter:
         finally:
             self.loading_modules.discard(key)
         # Export top-level env and functions
-        ns: Dict[str, object] = {}
+        ns: dict[str, object] = {}
         ns.update(child.env)
         for name, fn in child.functions.items():
             ns[name] = fn
@@ -544,10 +571,8 @@ class Interpreter:
 
 
 class _ReturnSignal(Exception):
-    def __init__(self, value: Optional[object]) -> None:
+    def __init__(self, value: object | None) -> None:
         self.value = value
-
-    
 
 
 class _SupThrown(Exception):

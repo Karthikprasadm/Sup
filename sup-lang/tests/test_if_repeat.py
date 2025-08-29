@@ -2,8 +2,7 @@ from sup.cli import run_source
 
 
 def test_if_and_repeat():
-    code = (
-        """
+    code = """
 sup
   set a to 5
   set b to 3
@@ -15,7 +14,5 @@ sup
   end repeat
 bye
 """.strip()
-    )
     out = run_source(code)
     assert out.splitlines() == ["5", "15", "15", "15"]
-

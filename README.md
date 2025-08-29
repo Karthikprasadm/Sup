@@ -42,6 +42,15 @@ Run a program:
 sup sup-lang/examples/06_mixed.sup
 ```
 
+CLI usage:
+```
+sup path/to/program.sup
+sup --emit python path/to/program.sup
+sup transpile path/to/entry.sup --out dist_py
+python dist_py/run.py
+sup --version
+```
+
 REPL: type a full program (from `sup` to `bye`) and it will execute.
 
 Transpile

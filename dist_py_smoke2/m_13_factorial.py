@@ -3,15 +3,15 @@
 last_result = None
 
 
-def square(x):
+def fact(n):
     global last_result
-    return x * x
+    if n <= 1:
+        return 1
+    return n * fact(n - 1)
 
 
 def __main__():
-    global pi
-    pi = 3.1415
-    last_result = pi
+    print(fact(5))
 
 
 if __name__ == "__main__":

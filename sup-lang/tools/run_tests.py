@@ -5,7 +5,7 @@ import sys
 def main() -> int:
     try:
         import pytest  # type: ignore
-    except Exception as e:
+    except Exception:
         sys.stderr.write("pytest is not installed. Run: pip install pytest\n")
         return 3
 
@@ -20,5 +20,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-
-

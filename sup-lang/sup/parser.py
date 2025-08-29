@@ -4,11 +4,9 @@ import json
 import os
 import re
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Tuple, Union
 
 from . import ast as AST
 from .errors import SupSyntaxError, nearest_phrase
-
 
 TokenType = str
 
@@ -16,21 +14,21 @@ TokenType = str
 @dataclass
 class Token:
     type: TokenType
-    value: Union[str, float, int, None]
+    value: str | float | int | None
     line: int
     column: int
 
 
 class Lexer:
-    def __init__(self, source: str, lexicon: Dict[str, List[str]]):
+    def __init__(self, source: str, lexicon: dict[str, list[str]]):
         # Normalize source: keep newlines for line numbers
         self.source = source
         self.lines = source.splitlines()
         self.lexicon = self._prepare_lexicon(lexicon)
         self.max_phrase_len = max(len(k.split()) for k in self.lexicon.keys())
 
-    def _prepare_lexicon(self, lex: Dict[str, List[str]]) -> Dict[str, str]:
-        phrase_to_key: Dict[str, str] = {}
+    def _prepare_lexicon(self, lex: dict[str, list[str]]) -> dict[str, str]:
+        phrase_to_key: dict[str, str] = {}
         for key, syns in lex.items():
             for s in syns:
                 phrase_to_key[s.lower()] = key
@@ -51,8 +49,8 @@ class Lexer:
             phrase_to_key.setdefault(p, k)
         return phrase_to_key
 
-    def tokenize(self) -> List[Token]:
-        tokens: List[Token] = []
+    def tokenize(self) -> list[Token]:
+        tokens: list[Token] = []
         for line_idx, raw_line in enumerate(self.lines, start=1):
             line = raw_line.strip()
             if not line:
@@ -72,21 +70,27 @@ class Lexer:
                     buf = []
                     while j < len(line):
                         ch = line[j]
-                        if ch == '\\' and j + 1 < len(line):
+                        if ch == "\\" and j + 1 < len(line):
                             buf.append(line[j + 1])
                             j += 2
                             continue
                         if ch == '"':
-                            tokens.append(Token("STRING", ''.join(buf), line_idx, i + 1))
+                            tokens.append(
+                                Token("STRING", "".join(buf), line_idx, i + 1)
+                            )
                             i = j + 1
                             break
                         buf.append(ch)
                         j += 1
                     else:
-                        raise SupSyntaxError(message="Unterminated string literal.", line=line_idx, column=i + 1)
+                        raise SupSyntaxError(
+                            message="Unterminated string literal.",
+                            line=line_idx,
+                            column=i + 1,
+                        )
                     continue
                 # Comma
-                if line[i] == ',':
+                if line[i] == ",":
                     tokens.append(Token("COMMA", None, line_idx, i + 1))
                     i += 1
                     continue
@@ -103,7 +107,7 @@ class Lexer:
                 if ident_m:
                     # Try to match multi-word phrases starting here
                     j = i
-                    best: Optional[Tuple[str, str]] = None  # (phrase, key)
+                    best: tuple[str, str] | None = None  # (phrase, key)
                     # Consider up to max_phrase_len words
                     words = line[i:]
                     for span_words in range(self.max_phrase_len, 0, -1):
@@ -137,12 +141,12 @@ class Lexer:
         tokens.append(Token("EOF", None, len(self.lines) + 1, 1))
         return tokens
 
-    def _take_words(self, text: str, n: int) -> Optional[str]:
+    def _take_words(self, text: str, n: int) -> str | None:
         # Return the substring consisting of the first n words of text if there are at least n words
         m = re.match(r"(?:\s*)(\S+(?:\s+\S+){%d})" % (n - 1), text)
         return m.group(1) if m else None
 
-    def _key_to_token(self, key: str) -> Tuple[TokenType, Optional[str]]:
+    def _key_to_token(self, key: str) -> tuple[TokenType, str | None]:
         mapping = {
             "add": ("ADD", None),
             "subtract": ("SUB", None),
@@ -235,7 +239,7 @@ class Parser:
             "SUP_LEXICON",
             os.path.join(os.path.dirname(__file__), "lexicon", "english.json"),
         )
-        with open(lex_path, "r", encoding="utf-8") as f:
+        with open(lex_path, encoding="utf-8") as f:
             self.lexicon = json.load(f)
 
     def parse(self, source: str) -> AST.Program:
@@ -254,7 +258,7 @@ class Parser:
         self.pos += 1
         return tok
 
-    def match(self, *types: TokenType) -> Optional[Token]:
+    def match(self, *types: TokenType) -> Token | None:
         if self.peek().type in types:
             return self.advance()
         return None
@@ -266,10 +270,18 @@ class Parser:
             if t in {"ADD", "SUB", "MUL", "DIV", "PRINT", "IF", "REPEAT"}:
                 # Suggest nearest phrase
                 candidates = [
-                    p for p, key in Lexer("", self.lexicon)._prepare_lexicon(self.lexicon).items() if self._key_to_type(key) == t
+                    p
+                    for p, key in Lexer("", self.lexicon)
+                    ._prepare_lexicon(self.lexicon)
+                    .items()
+                    if self._key_to_type(key) == t
                 ]
-                suggestion = nearest_phrase(tok.value if isinstance(tok.value, str) else tok.type, candidates)
-            raise SupSyntaxError(message=message, line=tok.line, column=tok.column, suggestion=suggestion)
+                suggestion = nearest_phrase(
+                    tok.value if isinstance(tok.value, str) else tok.type, candidates
+                )
+            raise SupSyntaxError(
+                message=message, line=tok.line, column=tok.column, suggestion=suggestion
+            )
         return self.advance()
 
     def _key_to_type(self, key: str) -> TokenType:
@@ -297,11 +309,23 @@ class Parser:
             tok = self.peek()
             raise SupSyntaxError(message=msg, line=tok.line, column=tok.column)
 
-    def statements(self) -> List[AST.Node]:
-        stmts: List[AST.Node] = []
+    def statements(self) -> list[AST.Node]:
+        stmts: list[AST.Node] = []
         while True:
             # Stop at EOF, BYE, ENDIF, ENDREPEAT, ENDFUNCTION, ENDWHILE, ENDFOR, ELSE (handled by if)
-            if self.peek().type in {"EOF", "BYE", "ENDIF", "ENDREPEAT", "ENDFUNCTION", "ENDWHILE", "ENDFOR", "ELSE", "ENDTRY", "CATCH", "FINALLY"}:
+            if self.peek().type in {
+                "EOF",
+                "BYE",
+                "ENDIF",
+                "ENDREPEAT",
+                "ENDFUNCTION",
+                "ENDWHILE",
+                "ENDFOR",
+                "ELSE",
+                "ENDTRY",
+                "CATCH",
+                "FINALLY",
+            }:
                 break
             if self.peek().type == "NEWLINE":
                 self.advance()
@@ -357,23 +381,37 @@ class Parser:
                 value_expr = self.expression()
                 if self.match("IN"):
                     target_expr = self.value()
-                    node2 = AST.SetKey(key=self._token_to_value_node(key_tok), value=value_expr, target=target_expr)
+                    node2 = AST.SetKey(
+                        key=self._token_to_value_node(key_tok),
+                        value=value_expr,
+                        target=target_expr,
+                    )
                     node2.line = start.line
                     return node2
                 else:
                     # Fall back to normal assignment where first token was IDENT
                     if key_tok.type in {"IDENT", "RESULT"}:
-                        name_val = ("result" if key_tok.type == "RESULT" else str(key_tok.value))
+                        name_val = (
+                            "result" if key_tok.type == "RESULT" else str(key_tok.value)
+                        )
                         expr = value_expr
                         node = AST.Assignment(name=name_val, expr=expr)
                         node.line = start.line
                         return node
                     # If key was STRING and no 'in', it's invalid
-                    raise SupSyntaxError(message="Expected 'in' for map assignment.", line=start.line, column=None)
+                    raise SupSyntaxError(
+                        message="Expected 'in' for map assignment.",
+                        line=start.line,
+                        column=None,
+                    )
             else:
                 # No 'to' -> treat as normal assignment requiring IDENT
                 if key_tok.type != "IDENT":
-                    raise SupSyntaxError(message="Expected variable name after 'set'.", line=key_tok.line, column=key_tok.column)
+                    raise SupSyntaxError(
+                        message="Expected variable name after 'set'.",
+                        line=key_tok.line,
+                        column=key_tok.column,
+                    )
                 name_val = str(key_tok.value)
                 self.expect("TO", "Expected 'to' in assignment.")
                 expr = self.expression()
@@ -405,7 +443,11 @@ class Parser:
             # 'the' IDENT/LIST/MAP
             if self.peek().type in {"IDENT", "LIST", "MAP"}:
                 t = self.advance()
-                name = "list" if t.type == "LIST" else ("map" if t.type == "MAP" else str(t.value))
+                name = (
+                    "list"
+                    if t.type == "LIST"
+                    else ("map" if t.type == "MAP" else str(t.value))
+                )
                 node = AST.Print(expr=AST.Identifier(name=name))
                 node.line = start.line
                 return node
@@ -437,7 +479,7 @@ class Parser:
             pass
         self._consume_newline("Expected newline after condition.")
         body = self.statements()
-        else_body: Optional[List[AST.Node]] = None
+        else_body: list[AST.Node] | None = None
         if self.match("ELSE"):
             self._consume_newline("Expected newline after 'else'.")
             else_body = self.statements()
@@ -511,7 +553,7 @@ class Parser:
         self.expect("FUNCTION", "Expected 'function'.")
         self.expect("CALLED", "Expected 'called'.")
         name_tok = self.expect("IDENT", "Expected function name.")
-        params: List[str] = []
+        params: list[str] = []
         if self.match("WITH"):
             first = self.expect("IDENT", "Expected parameter after 'with'.")
             params.append(str(first.value))
@@ -546,9 +588,9 @@ class Parser:
         start = self.expect("TRY", "Expected 'try'.")
         self._consume_newline("Expected newline after 'try'.")
         body = self.statements()
-        catch_name: Optional[str] = None
-        catch_body: Optional[List[AST.Node]] = None
-        finally_body: Optional[List[AST.Node]] = None
+        catch_name: str | None = None
+        catch_body: list[AST.Node] | None = None
+        finally_body: list[AST.Node] | None = None
         if self.match("CATCH"):
             if self.peek().type == "IDENT":
                 catch_name = str(self.advance().value)
@@ -558,7 +600,12 @@ class Parser:
             self._consume_newline("Expected newline after 'finally'.")
             finally_body = self.statements()
         self.expect("ENDTRY", "Expected 'end try'.")
-        node = AST.TryCatch(body=body, catch_name=catch_name, catch_body=catch_body, finally_body=finally_body)
+        node = AST.TryCatch(
+            body=body,
+            catch_name=catch_name,
+            catch_body=catch_body,
+            finally_body=finally_body,
+        )
         node.line = start.line
         return node
 
@@ -572,7 +619,7 @@ class Parser:
     def import_stmt(self) -> AST.Import:
         start = self.expect("IMPORT", "Expected 'import'.")
         mod_tok = self.expect("IDENT", "Expected module name.")
-        alias: Optional[str] = None
+        alias: str | None = None
         if self.match("AS"):
             alias = str(self.expect("IDENT", "Expected alias.").value)
         node = AST.Import(module=str(mod_tok.value), alias=alias)
@@ -583,11 +630,11 @@ class Parser:
         start = self.expect("FROM", "Expected 'from'.")
         mod_tok = self.expect("IDENT", "Expected module name.")
         self.expect("IMPORT", "Expected 'import'.")
-        names: List[tuple[str, Optional[str]]] = []
+        names: list[tuple[str, str | None]] = []
         # name [as alias] {, name [as alias]}
         while True:
             name_tok = self.expect("IDENT", "Expected symbol name.")
-            alias: Optional[str] = None
+            alias: str | None = None
             if self.match("AS"):
                 alias = str(self.expect("IDENT", "Expected alias.").value)
             names.append((str(name_tok.value), alias))
@@ -614,10 +661,29 @@ class Parser:
         if tok.type == "MAKE":
             return self.make_expr()
         if tok.type in {
-            "PUSH", "POP", "GET", "DELETE", "LENGTH",
-            "UPPER", "LOWER", "CONCAT", "POWER", "SQRT", "ABS",
-            "MIN", "MAX", "FLOOR", "CEIL", "TRIM", "NOW",
-            "CONTAINS", "JOIN", "READ_FILE", "WRITE_FILE", "JSON_PARSE", "JSON_STRINGIFY",
+            "PUSH",
+            "POP",
+            "GET",
+            "DELETE",
+            "LENGTH",
+            "UPPER",
+            "LOWER",
+            "CONCAT",
+            "POWER",
+            "SQRT",
+            "ABS",
+            "MIN",
+            "MAX",
+            "FLOOR",
+            "CEIL",
+            "TRIM",
+            "NOW",
+            "CONTAINS",
+            "JOIN",
+            "READ_FILE",
+            "WRITE_FILE",
+            "JSON_PARSE",
+            "JSON_STRINGIFY",
         }:
             return self.collection_or_builtin()
         return self.value()
@@ -625,7 +691,7 @@ class Parser:
     def call_expr(self) -> AST.Call:
         start = self.expect("CALL", "Expected 'call'.")
         name_tok = self.expect("IDENT", "Expected function name to call.")
-        args: List[AST.Node] = []
+        args: list[AST.Node] = []
         if self.match("WITH"):
             args.append(self.expression())
             while self.match("AND"):
@@ -638,7 +704,7 @@ class Parser:
         start = self.expect("MAKE", "Expected 'make'.")
         if self.match("LIST"):
             self.expect("OF", "Expected 'of' after 'make list'.")
-            items: List[AST.Node] = []
+            items: list[AST.Node] = []
             # parse comma-separated values
             items.append(self.value())
             while self.match("COMMA"):
@@ -650,7 +716,11 @@ class Parser:
             node = AST.MakeMap()
             node.line = start.line
             return node
-        raise SupSyntaxError(message="Expected 'list' or 'map' after 'make'.", line=start.line, column=start.column)
+        raise SupSyntaxError(
+            message="Expected 'list' or 'map' after 'make'.",
+            line=start.line,
+            column=start.column,
+        )
 
     def collection_or_builtin(self) -> AST.Node:
         tok = self.peek()
@@ -696,10 +766,19 @@ class Parser:
             return node
         # Builtin string/math operations with 'of' and/or binary forms
         # Unary/zero-arg builtins
-        if tok.type in {"UPPER", "LOWER", "SQRT", "ABS", "FLOOR", "CEIL", "TRIM", "NOW"}:
+        if tok.type in {
+            "UPPER",
+            "LOWER",
+            "SQRT",
+            "ABS",
+            "FLOOR",
+            "CEIL",
+            "TRIM",
+            "NOW",
+        }:
             start = self.advance()
             name = tok.type.lower()
-            args: List[AST.Node] = []
+            args: list[AST.Node] = []
             if tok.type != "NOW":
                 self.expect("OF", f"Expected 'of' after '{name}'.")
                 args.append(self.value())
@@ -722,7 +801,15 @@ class Parser:
             a = self.value()
             self.expect("AND", "Expected 'and' in binary builtin.")
             b = self.value()
-            name = "power" if tok.type == "POWER" else ("min" if tok.type == "MIN" else ("max" if tok.type == "MAX" else "contains"))
+            name = (
+                "power"
+                if tok.type == "POWER"
+                else (
+                    "min"
+                    if tok.type == "MIN"
+                    else ("max" if tok.type == "MAX" else "contains")
+                )
+            )
             node = AST.BuiltinCall(name=name, args=[a, b])
             node.line = start.line
             return node
@@ -810,7 +897,7 @@ class Parser:
         node.line = start.line
         return node
 
-    def condition(self) -> Tuple[AST.Node, str, AST.Node]:
+    def condition(self) -> tuple[AST.Node, str, AST.Node]:
         left = self.value()
         rel = self.expect("REL", "Expected relational operator.")
         right = self.value()
@@ -864,5 +951,6 @@ class Parser:
             node = AST.Identifier(name=str(tok.value))
             node.line = tok.line
             return node
-        raise SupSyntaxError(message="Invalid key token.", line=tok.line, column=tok.column)
-
+        raise SupSyntaxError(
+            message="Invalid key token.", line=tok.line, column=tok.column
+        )

@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import List
-
 from . import ast as AST
 
 
@@ -12,7 +10,7 @@ def to_python(program: AST.Program) -> str:
 
 class _PythonEmitter:
     def __init__(self) -> None:
-        self.lines: List[str] = []
+        self.lines: list[str] = []
         self.indent = 0
         self.in_function = 0
 
@@ -165,7 +163,9 @@ class _PythonEmitter:
         if isinstance(node, AST.Identifier):
             return node.name
         if isinstance(node, AST.Binary):
-            return f"({self.emit_expr(node.left)} {node.op} {self.emit_expr(node.right)})"
+            return (
+                f"({self.emit_expr(node.left)} {node.op} {self.emit_expr(node.right)})"
+            )
         if isinstance(node, AST.Call):
             args = ", ".join(self.emit_expr(a) for a in node.args)
             return f"{node.name}({args})"
@@ -182,16 +182,20 @@ class _PythonEmitter:
         if isinstance(node, AST.SetKey):
             return f"{self.emit_expr(node.target)}[{self.emit_expr(node.key)}] = {self.emit_expr(node.value)}"
         if isinstance(node, AST.DeleteKey):
-            return f"{self.emit_expr(node.target)}.pop({self.emit_expr(node.key)}, None)"
+            return (
+                f"{self.emit_expr(node.target)}.pop({self.emit_expr(node.key)}, None)"
+            )
         if isinstance(node, AST.Length):
             return f"len({self.emit_expr(node.target)})"
         if isinstance(node, AST.BoolBinary):
-            op = 'and' if node.op == 'and' else 'or'
+            op = "and" if node.op == "and" else "or"
             return f"({self.emit_expr(node.left)} {op} {self.emit_expr(node.right)})"
         if isinstance(node, AST.NotOp):
             return f"(not {self.emit_expr(node.expr)})"
         if isinstance(node, AST.Compare):
-            return f"({self.emit_expr(node.left)} {node.op} {self.emit_expr(node.right)})"
+            return (
+                f"({self.emit_expr(node.left)} {node.op} {self.emit_expr(node.right)})"
+            )
         if isinstance(node, AST.BuiltinCall):
             mapping = {
                 "power": lambda args: f"({args[0]}) ** ({args[1]})",
@@ -206,5 +210,3 @@ class _PythonEmitter:
                 return mapping[node.name](args)
             raise NotImplementedError(f"Unsupported builtin {node.name}")
         raise NotImplementedError(f"Unsupported expression {type(node).__name__}")
-
-

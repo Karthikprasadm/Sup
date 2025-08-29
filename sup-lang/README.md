@@ -5,6 +5,7 @@ An English-like programming language focused on readability with deterministic s
 [![CI](https://github.com/Karthikprasadm/Sup/actions/workflows/ci.yml/badge.svg)](https://github.com/Karthikprasadm/Sup/actions/workflows/ci.yml)
 [![Docs](https://img.shields.io/badge/docs-mkdocs-blue)](https://karthikprasadm.github.io/Sup)
 [![PyPI](https://img.shields.io/pypi/v/sup-lang.svg)](https://pypi.org/project/sup-lang/)
+[![Coverage](https://img.shields.io/codecov/c/github/Karthikprasadm/Sup)](https://codecov.io/gh/Karthikprasadm/Sup)
 [![VS Code](https://img.shields.io/badge/VS%20Code-Extension-blue)](https://marketplace.visualstudio.com/items?itemName=wingspawn.sup-language-support)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](../LICENSE)
 
@@ -22,6 +23,26 @@ pip install -e .
 2. Run a program:
 ```
 sup examples/06_mixed.sup
+```
+
+### CLI usage
+
+Run a file:
+```
+sup path/to/program.sup
+```
+Emit Python for a single source:
+```
+sup --emit python path/to/program.sup
+```
+Transpile entry + imports to a folder and run:
+```
+sup transpile path/to/entry.sup --out dist_py
+python dist_py/run.py
+```
+Check version:
+```
+sup --version
 ```
 
 3. Run tests (with coverage in CI):

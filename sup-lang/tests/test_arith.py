@@ -17,4 +17,3 @@ bye
 """.strip()
     )
     assert out.splitlines() == ["5", "10", "5.0"]
-

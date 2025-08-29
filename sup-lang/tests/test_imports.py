@@ -1,5 +1,6 @@
 import os
 import tempfile
+
 from sup.cli import run_source
 
 
@@ -24,8 +25,7 @@ sup
 bye
 """.strip(),
         )
-        code = (
-            """
+        code = """
 sup
   import mathlib
   print mathlib.pi
@@ -34,7 +34,6 @@ sup
   print call square with 5
 bye
 """.strip()
-        )
         out = run_source(code)
         assert out.splitlines() == ["3.14", "4.0", "25.0"]
 
@@ -53,8 +52,7 @@ sup
 bye
 """.strip(),
         )
-        code = (
-            """
+        code = """
 sup
   import m as mm
   print call mm.square with 4
@@ -62,21 +60,16 @@ sup
   print call sq with 6
 bye
 """.strip()
-        )
         out = run_source(code)
         assert out.splitlines() == ["16.0", "36.0"]
 
-        code_missing = (
-            """
+        code_missing = """
 sup
   from m import nope
 bye
 """.strip()
-        )
         try:
             run_source(code_missing)
             assert False, "Expected runtime error"
         except Exception as e:
             assert "no symbol" in str(e).lower()
-
-

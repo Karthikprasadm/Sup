@@ -1,17 +1,16 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import List, Optional, Union
 
 
 # AST Node base
 class Node:
-    line: Optional[int] = None
+    line: int | None = None
 
 
 @dataclass
 class Program(Node):
-    statements: List[Node]
+    statements: list[Node]
 
 
 @dataclass
@@ -22,7 +21,7 @@ class Assignment(Node):
 
 @dataclass
 class Print(Node):
-    expr: Optional[Node]  # None means print last_result
+    expr: Node | None  # None means print last_result
 
 
 @dataclass
@@ -33,19 +32,19 @@ class Ask(Node):
 @dataclass
 class If(Node):
     # Back-compat fields for simple comparisons
-    left: Optional[Node] = None
-    op: Optional[str] = None  # one of '>', '<', '==', '!=', '>=', '<='
-    right: Optional[Node] = None
+    left: Node | None = None
+    op: str | None = None  # one of '>', '<', '==', '!=', '>=', '<='
+    right: Node | None = None
     # General condition node when using boolean expressions
-    cond: Optional[Node] = None
-    body: List[Node] = None  # type: ignore[assignment]
-    else_body: Optional[List[Node]] = None
+    cond: Node | None = None
+    body: list[Node] = None  # type: ignore[assignment]
+    else_body: list[Node] | None = None
 
 
 @dataclass
 class Repeat(Node):
     count_expr: Node
-    body: List[Node]
+    body: list[Node]
 
 
 @dataclass
@@ -67,7 +66,7 @@ class Identifier(Node):
 
 @dataclass
 class Number(Node):
-    value: Union[int, float]
+    value: int | float
 
 
 @dataclass
@@ -78,26 +77,27 @@ class String(Node):
 @dataclass
 class FunctionDef(Node):
     name: str
-    params: List[str]
-    body: List[Node]
+    params: list[str]
+    body: list[Node]
 
 
 @dataclass
 class Return(Node):
-    expr: Optional[Node]
+    expr: Node | None
 
 
 @dataclass
 class Call(Node):
     name: str
-    args: List[Node]
+    args: list[Node]
 
 
 # Collections and stdlib
 
+
 @dataclass
 class MakeList(Node):
-    items: List[Node]
+    items: list[Node]
 
 
 @dataclass
@@ -150,20 +150,20 @@ class Index(Node):
 @dataclass
 class BuiltinCall(Node):
     name: str
-    args: List[Node]
+    args: list[Node]
 
 
 @dataclass
 class While(Node):
     cond: Node
-    body: List[Node]
+    body: list[Node]
 
 
 @dataclass
 class ForEach(Node):
     var: str
     iterable: Node
-    body: List[Node]
+    body: list[Node]
 
 
 @dataclass
@@ -187,10 +187,10 @@ class Compare(Node):
 
 @dataclass
 class TryCatch(Node):
-    body: List[Node]
-    catch_name: Optional[str]
-    catch_body: Optional[List[Node]]
-    finally_body: Optional[List[Node]]
+    body: list[Node]
+    catch_name: str | None
+    catch_body: list[Node] | None
+    finally_body: list[Node] | None
 
 
 @dataclass
@@ -201,11 +201,10 @@ class Throw(Node):
 @dataclass
 class Import(Node):
     module: str
-    alias: Optional[str]
+    alias: str | None
 
 
 @dataclass
 class FromImport(Node):
     module: str
-    names: List[tuple[str, Optional[str]]]
-
+    names: list[tuple[str, str | None]]

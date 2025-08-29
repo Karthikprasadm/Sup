@@ -2,8 +2,7 @@ from sup.cli import run_source
 
 
 def test_if_else_and_comparisons():
-    code = (
-        """
+    code = """
 sup
   set x to 7
   if x is greater than 5
@@ -17,7 +16,5 @@ sup
   end if
 bye
 """.strip()
-    )
     out = run_source(code)
     assert out.splitlines() == ["big", "match"]
-

@@ -1,6 +1,6 @@
 import pytest
 from sup.cli import run_source
-from sup.errors import SupSyntaxError, SupRuntimeError
+from sup.errors import SupRuntimeError, SupSyntaxError
 
 
 def test_program_must_start_with_sup():
@@ -16,14 +16,10 @@ def test_program_must_end_with_bye():
 
 
 def test_undefined_variable_runtime_error():
-    code = (
-        """
+    code = """
 sup
   print foo
 bye
 """.strip()
-    )
     with pytest.raises(SupRuntimeError):
         run_source(code)
-
-

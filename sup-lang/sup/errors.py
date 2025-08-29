@@ -1,16 +1,15 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import Optional
 import difflib
+from dataclasses import dataclass
 
 
 @dataclass
 class SupError(Exception):
     message: str
-    line: Optional[int] = None
-    column: Optional[int] = None
-    suggestion: Optional[str] = None
+    line: int | None = None
+    column: int | None = None
+    suggestion: str | None = None
 
     def __str__(self) -> str:  # pragma: no cover - trivial formatting
         location = f" on line {self.line}" if self.line is not None else ""
@@ -28,9 +27,8 @@ class SupRuntimeError(SupError):
     pass
 
 
-def nearest_phrase(bad: str, candidates: list[str]) -> Optional[str]:
+def nearest_phrase(bad: str, candidates: list[str]) -> str | None:
     if not bad or not candidates:
         return None
     match = difflib.get_close_matches(bad, candidates, n=1)
     return match[0] if match else None
-
