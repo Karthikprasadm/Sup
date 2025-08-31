@@ -8,14 +8,100 @@ def to_python(program: AST.Program) -> str:
     return emitter.emit_program(program)
 
 
+def to_python_with_map(
+    program: AST.Program,
+) -> tuple[str, list[tuple[int, int | None]]]:
+    """Return (python_code, sourcemap) where sourcemap is list of (py_line, sup_line)."""
+    emitter = _PythonEmitter()
+    code = emitter.emit_program(program)
+    return code, emitter.sourcemap
+
+
+# VLQ encoder for sourcemaps
+_VLQ_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
+
+
+def _to_vlq_signed(value: int) -> int:
+    return (value << 1) ^ (value >> 31)
+
+
+def _encode_vlq(value: int) -> str:
+    vlq = _to_vlq_signed(value)
+    out = []
+    while True:
+        digit = vlq & 31
+        vlq >>= 5
+        if vlq > 0:
+            digit |= 32
+        out.append(_VLQ_CHARS[digit])
+        if vlq == 0:
+            break
+    return "".join(out)
+
+
+def build_sourcemap_json(
+    py_code: str,
+    src_name: str,
+    src_content: str,
+    mapping: list[tuple[int, int | None]],
+) -> str:
+    # Build basic VLQ mappings: for each generated line with a known source line, map column 0 to sourceIndex 0, originalLine, col 0
+    # mapping entries are (generated_line_number 1-based, source_line_number 1-based or None)
+    gen_lines = py_code.splitlines()
+    # Prepare per-line segments
+    last_generated_col = 0
+    last_source_index = 0
+    last_original_line = 0
+    last_original_col = 0
+    mappings_lines: list[str] = []
+    # Create a quick dict from py_line -> src_line
+    py_to_src: dict[int, int] = {py: src for (py, src) in mapping if src is not None}
+    for i in range(1, len(gen_lines) + 1):
+        segs: list[str] = []
+        if i in py_to_src:
+            gen_col = 0
+            src_idx = 0
+            orig_line0 = max(0, py_to_src[i] - 1)
+            orig_col = 0
+            seg = (
+                _encode_vlq(gen_col - last_generated_col)
+                + _encode_vlq(src_idx - last_source_index)
+                + _encode_vlq(orig_line0 - last_original_line)
+                + _encode_vlq(orig_col - last_original_col)
+            )
+            last_generated_col = gen_col
+            last_source_index = src_idx
+            last_original_line = orig_line0
+            last_original_col = orig_col
+            segs.append(seg)
+        mappings_lines.append(",".join(segs))
+        # Reset generated column for each new line
+        last_generated_col = 0
+    import json as _json
+
+    sm = {
+        "version": 3,
+        "file": src_name + ".py",
+        "sources": [src_name],
+        "sourcesContent": [src_content],
+        "mappings": ";".join(mappings_lines),
+    }
+    return _json.dumps(sm)
+
+
 class _PythonEmitter:
     def __init__(self) -> None:
         self.lines: list[str] = []
         self.indent = 0
         self.in_function = 0
+        self.sourcemap: list[tuple[int, int | None]] = []
+        self._current_src_line: int | None = None
 
     def w(self, line: str = "") -> None:
         self.lines.append("    " * self.indent + line)
+        # Record a simple mapping of emitted line to the most recent source line for a statement
+        py_line_no = len(self.lines)
+        self.sourcemap.append((py_line_no, self._current_src_line))
 
     def emit_program(self, program: AST.Program) -> str:
         self.w("# Transpiled from sup")
@@ -60,6 +146,8 @@ class _PythonEmitter:
         self.w()
 
     def emit_stmt(self, node: AST.Node) -> None:
+        # Set current source line for mapping
+        self._current_src_line = getattr(node, "line", None)
         if isinstance(node, AST.Assignment):
             value = self.emit_expr(node.expr)
             # Ensure variables assigned inside functions (including __main__) are module globals

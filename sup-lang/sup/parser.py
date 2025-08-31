@@ -21,8 +21,10 @@ class Token:
 
 class Lexer:
     def __init__(self, source: str, lexicon: dict[str, list[str]]):
-        # Normalize source: keep newlines for line numbers
-        self.source = source
+        # Normalize source: remove BOM and keep newlines for line numbers
+        if source and source[0] == "\ufeff":
+            source = source[1:]
+        self.source = source.replace("\ufeff", "")
         self.lines = source.splitlines()
         self.lexicon = self._prepare_lexicon(lexicon)
         self.max_phrase_len = max(len(k.split()) for k in self.lexicon.keys())
@@ -205,6 +207,33 @@ class Lexer:
             "write_file": ("WRITE_FILE", None),
             "json_parse": ("JSON_PARSE", None),
             "json_stringify": ("JSON_STRINGIFY", None),
+            # env/path/logging/regex/args
+            "env_get": ("ENV_GET", None),
+            "env_set": ("ENV_SET", None),
+            "cwd": ("CWD", None),
+            "join_path": ("JOIN_PATH", None),
+            "basename": ("BASENAME", None),
+            "dirname": ("DIRNAME", None),
+            "exists": ("EXISTS", None),
+            "log": ("LOG", None),
+            "regex_match": ("REGEX_MATCH", None),
+            "regex_search": ("REGEX_SEARCH", None),
+            "regex_replace": ("REGEX_REPLACE", None),
+            "args_get": ("ARGS_GET", None),
+            # http/subprocess/glob/random/crypto/datetime
+            "http_get": ("HTTP_GET", None),
+            "http_post": ("HTTP_POST", None),
+            "spawn": ("SPAWN", None),
+            "glob": ("GLOB", None),
+            "rand_int": ("RAND_INT", None),
+            "rand_float": ("RAND_FLOAT", None),
+            "shuffle": ("SHUFFLE", None),
+            "choice": ("CHOICE", None),
+            "hash_md5": ("HASH_MD5", None),
+            "hash_sha1": ("HASH_SHA1", None),
+            "hash_sha256": ("HASH_SHA256", None),
+            "time_now": ("TIME_NOW", None),
+            "format_date": ("FORMAT_DATE", None),
             "define": ("DEFINE", None),
             "function": ("FUNCTION", None),
             "called": ("CALLED", None),
@@ -684,6 +713,31 @@ class Parser:
             "WRITE_FILE",
             "JSON_PARSE",
             "JSON_STRINGIFY",
+            "ENV_GET",
+            "ENV_SET",
+            "CWD",
+            "JOIN_PATH",
+            "BASENAME",
+            "DIRNAME",
+            "EXISTS",
+            "LOG",
+            "REGEX_MATCH",
+            "REGEX_SEARCH",
+            "REGEX_REPLACE",
+            "ARGS_GET",
+            "HTTP_GET",
+            "HTTP_POST",
+            "SPAWN",
+            "GLOB",
+            "RAND_INT",
+            "RAND_FLOAT",
+            "SHUFFLE",
+            "CHOICE",
+            "HASH_MD5",
+            "HASH_SHA1",
+            "HASH_SHA256",
+            "TIME_NOW",
+            "FORMAT_DATE",
         }:
             return self.collection_or_builtin()
         return self.value()
@@ -852,6 +906,207 @@ class Parser:
             node = AST.BuiltinCall(name="json_stringify", args=[v])
             node.line = start.line
             return node
+        # HTTP
+        if tok.type == "HTTP_GET":
+            start = self.advance()
+            self.expect("OF", "Expected 'of' after 'http get'.")
+            url = self.value()
+            node = AST.BuiltinCall(name="http_get", args=[url])
+            node.line = start.line
+            return node
+        if tok.type == "HTTP_POST":
+            start = self.advance()
+            self.expect("OF", "Expected 'of' after 'http post'.")
+            url = self.value()
+            self.expect("AND", "Expected 'and' in http post.")
+            body = self.value()
+            node = AST.BuiltinCall(name="http_post", args=[url, body])
+            node.line = start.line
+            return node
+        # Subprocess
+        if tok.type == "SPAWN":
+            start = self.advance()
+            self.expect("OF", "Expected 'of' after 'spawn'.")
+            cmd = self.value()
+            node = AST.BuiltinCall(name="spawn", args=[cmd])
+            node.line = start.line
+            return node
+        # Glob
+        if tok.type == "GLOB":
+            start = self.advance()
+            self.expect("OF", "Expected 'of' after 'glob'.")
+            pat = self.value()
+            node = AST.BuiltinCall(name="glob", args=[pat])
+            node.line = start.line
+            return node
+        # Random
+        if tok.type == "RAND_INT":
+            start = self.advance()
+            self.expect("OF", "Expected 'of' after 'random int'.")
+            a = self.value()
+            self.expect("AND", "Expected 'and' in random int.")
+            b = self.value()
+            node = AST.BuiltinCall(name="rand_int", args=[a, b])
+            node.line = start.line
+            return node
+        if tok.type == "RAND_FLOAT":
+            start = self.advance()
+            node = AST.BuiltinCall(name="rand_float", args=[])
+            node.line = start.line
+            return node
+        if tok.type == "SHUFFLE":
+            start = self.advance()
+            self.expect("OF", "Expected 'of' after 'shuffle'.")
+            lst = self.value()
+            node = AST.BuiltinCall(name="shuffle", args=[lst])
+            node.line = start.line
+            return node
+        if tok.type == "CHOICE":
+            start = self.advance()
+            self.expect("OF", "Expected 'of' after 'choice'.")
+            lst = self.value()
+            node = AST.BuiltinCall(name="choice", args=[lst])
+            node.line = start.line
+            return node
+        # Crypto
+        if tok.type == "HASH_MD5":
+            start = self.advance()
+            self.expect("OF", "Expected 'of' after 'hash md5'.")
+            v = self.value()
+            node = AST.BuiltinCall(name="hash_md5", args=[v])
+            node.line = start.line
+            return node
+        if tok.type == "HASH_SHA1":
+            start = self.advance()
+            self.expect("OF", "Expected 'of' after 'hash sha1'.")
+            v = self.value()
+            node = AST.BuiltinCall(name="hash_sha1", args=[v])
+            node.line = start.line
+            return node
+        if tok.type == "HASH_SHA256":
+            start = self.advance()
+            self.expect("OF", "Expected 'of' after 'hash sha256'.")
+            v = self.value()
+            node = AST.BuiltinCall(name="hash_sha256", args=[v])
+            node.line = start.line
+            return node
+        # Datetime
+        if tok.type == "TIME_NOW":
+            start = self.advance()
+            node = AST.BuiltinCall(name="time_now", args=[])
+            node.line = start.line
+            return node
+        if tok.type == "FORMAT_DATE":
+            start = self.advance()
+            self.expect("OF", "Expected 'of' after 'format date'.")
+            ts = self.value()
+            self.expect("AND", "Expected 'and' in format date.")
+            fmt = self.value()
+            node = AST.BuiltinCall(name="format_date", args=[ts, fmt])
+            node.line = start.line
+            return node
+        # Env
+        if tok.type == "ENV_GET":
+            start = self.advance()
+            self.expect("OF", "Expected 'of' after 'env get'.")
+            key = self.value()
+            node = AST.BuiltinCall(name="env_get", args=[key])
+            node.line = start.line
+            return node
+        if tok.type == "ENV_SET":
+            start = self.advance()
+            self.expect("OF", "Expected 'of' after 'env set'.")
+            key = self.value()
+            self.expect("AND", "Expected 'and' in env set.")
+            val = self.value()
+            node = AST.BuiltinCall(name="env_set", args=[key, val])
+            node.line = start.line
+            return node
+        # Path
+        if tok.type == "CWD":
+            start = self.advance()
+            node = AST.BuiltinCall(name="cwd", args=[])
+            node.line = start.line
+            return node
+        if tok.type == "JOIN_PATH":
+            start = self.advance()
+            self.expect("OF", "Expected 'of' after 'join path'.")
+            a = self.value()
+            self.expect("AND", "Expected 'and' in join path.")
+            b = self.value()
+            node = AST.BuiltinCall(name="join_path", args=[a, b])
+            node.line = start.line
+            return node
+        if tok.type == "BASENAME":
+            start = self.advance()
+            self.expect("OF", "Expected 'of' after 'basename'.")
+            p = self.value()
+            node = AST.BuiltinCall(name="basename", args=[p])
+            node.line = start.line
+            return node
+        if tok.type == "DIRNAME":
+            start = self.advance()
+            self.expect("OF", "Expected 'of' after 'dirname'.")
+            p = self.value()
+            node = AST.BuiltinCall(name="dirname", args=[p])
+            node.line = start.line
+            return node
+        if tok.type == "EXISTS":
+            start = self.advance()
+            self.expect("OF", "Expected 'of' after 'exists'.")
+            p = self.value()
+            node = AST.BuiltinCall(name="exists", args=[p])
+            node.line = start.line
+            return node
+        # Logging
+        if tok.type == "LOG":
+            start = self.advance()
+            self.expect("OF", "Expected 'of' after 'log'.")
+            m = self.value()
+            node = AST.BuiltinCall(name="log", args=[m])
+            node.line = start.line
+            return node
+        # Regex
+        if tok.type == "REGEX_MATCH":
+            start = self.advance()
+            self.expect("OF", "Expected 'of' after 'regex match'.")
+            pat = self.value()
+            self.expect("AND", "Expected 'and' in regex match.")
+            text = self.value()
+            node = AST.BuiltinCall(name="regex_match", args=[pat, text])
+            node.line = start.line
+            return node
+        if tok.type == "REGEX_SEARCH":
+            start = self.advance()
+            self.expect("OF", "Expected 'of' after 'regex search'.")
+            pat = self.value()
+            self.expect("AND", "Expected 'and' in regex search.")
+            text = self.value()
+            node = AST.BuiltinCall(name="regex_search", args=[pat, text])
+            node.line = start.line
+            return node
+        if tok.type == "REGEX_REPLACE":
+            start = self.advance()
+            self.expect("OF", "Expected 'of' after 'regex replace'.")
+            pat = self.value()
+            self.expect("AND", "Expected 'and' in regex replace.")
+            text = self.value()
+            self.expect("AND", "Expected second 'and' in regex replace.")
+            repl = self.value()
+            node = AST.BuiltinCall(name="regex_replace", args=[pat, text, repl])
+            node.line = start.line
+            return node
+        # Args
+        if tok.type == "ARGS_GET":
+            start = self.advance()
+            # zero-arg returns joined args; or 'of' index
+            if self.match("OF"):
+                idx = self.value()
+                node = AST.BuiltinCall(name="args_get", args=[idx])
+            else:
+                node = AST.BuiltinCall(name="args_get", args=[])
+            node.line = start.line
+            return node
         # No more builtins
         raise SupSyntaxError(message="Unsupported builtin or collection operation.")
 
@@ -930,6 +1185,61 @@ class Parser:
             node = AST.Identifier(name=str(t.value))
             node.line = t.line
             return node
+        # Allow builtins as values (e.g., length of join of ...)
+        if tok.type in {
+            "PUSH",
+            "POP",
+            "GET",
+            "DELETE",
+            "LENGTH",
+            "UPPER",
+            "LOWER",
+            "CONCAT",
+            "POWER",
+            "SQRT",
+            "ABS",
+            "MIN",
+            "MAX",
+            "FLOOR",
+            "CEIL",
+            "TRIM",
+            "NOW",
+            "CONTAINS",
+            "JOIN",
+            "READ_FILE",
+            "WRITE_FILE",
+            "JSON_PARSE",
+            "JSON_STRINGIFY",
+            "ENV_GET",
+            "ENV_SET",
+            "CWD",
+            "JOIN_PATH",
+            "BASENAME",
+            "DIRNAME",
+            "EXISTS",
+            "LOG",
+            "REGEX_MATCH",
+            "REGEX_SEARCH",
+            "REGEX_REPLACE",
+            "ARGS_GET",
+            "HTTP_GET",
+            "HTTP_POST",
+            "SPAWN",
+            "GLOB",
+            "RAND_INT",
+            "RAND_FLOAT",
+            "SHUFFLE",
+            "CHOICE",
+            "HASH_MD5",
+            "HASH_SHA1",
+            "HASH_SHA256",
+            "TIME_NOW",
+            "FORMAT_DATE",
+        }:
+            return self.collection_or_builtin()
+        # Allow inline make expressions as values
+        if tok.type == "MAKE":
+            return self.make_expr()
         # Allow function calls as values
         if tok.type == "CALL":
             return self.call_expr()

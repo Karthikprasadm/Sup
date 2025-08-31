@@ -40,6 +40,24 @@ Transpile entry + imports to a folder and run:
 sup transpile path/to/entry.sup --out dist_py
 python dist_py/run.py
 ```
+Debug a program (break/step/next/print):
+```
+sup --debug path/to/entry.sup
+```
+Profile and coverage:
+```
+supprof path/to/entry.sup
+supcov path/to/entry.sup
+```
+
+Project commands:
+```
+sup init myapp
+sup build main.sup --out dist_sup
+sup lock main.sup
+sup test tests/
+sup publish .
+```
 Check version:
 ```
 sup --version

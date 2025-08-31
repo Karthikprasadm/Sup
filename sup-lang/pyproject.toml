@@ -30,6 +30,11 @@ Issues = "https://github.com/Karthikprasadm/Sup/issues"
 [project.scripts]
 sup = "sup.cli:main"
 supc = "sup.cli:main"
+supfmt = "sup.supfmt:main"
+suplint = "sup.suplint:main"
+suplsp = "sup.lsp_server:main"
+supprof = "sup.tools.profiler:main"
+supcov = "sup.tools.coverage:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["sup"]

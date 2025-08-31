@@ -5,6 +5,9 @@
   "publisher": "wingspawn",
   "version": "0.0.3",
   "engines": { "vscode": "^1.70.0" },
+  "dependencies": {
+    "vscode-languageclient": "^9.0.1"
+  },
   "categories": ["Programming Languages"],
   "keywords": ["sup", "sup language", "english-like", "language", "syntax"],
   "repository": {
@@ -12,13 +15,34 @@
     "url": "https://github.com/Karthikprasadm/Sup"
   },
   "license": "MIT",
+  "main": "extension.js",
   "contributes": {
     "languages": [
       { "id": "sup", "aliases": ["Sup"], "extensions": [".sup"] }
     ],
     "grammars": [
       { "language": "sup", "scopeName": "source.sup", "path": "syntaxes/sup.tmLanguage.json" }
-    ]
-  }
+    ],
+    "configuration": {
+      "type": "object",
+      "title": "SUP",
+      "properties": {
+        "sup.pythonPath": {
+          "type": "string",
+          "description": "Path to Python interpreter used by SUP tools",
+          "default": ""
+        },
+        "sup.diagnosticsBackend": {
+          "type": "string",
+          "enum": ["interp", "vm"],
+          "default": "interp",
+          "description": "Diagnostics engine for LSP."
+        }
+      }
+    }
+  },
+  "activationEvents": [
+    "onLanguage:sup"
+  ]
 }
 

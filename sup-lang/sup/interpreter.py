@@ -36,6 +36,9 @@ class Interpreter:
         self.loading_modules: set[str] = set()
         self.last_result: object | None = None
         self.io = IOHooks()
+        # Debug/trace hooks (called at start and end of each statement)
+        self.on_node_start = None  # type: ignore[assignment]
+        self.on_node_end = None  # type: ignore[assignment]
 
     def run(self, program: AST.Program, *, stdin: str | None = None) -> str:
         self.io.stdin = stdin
@@ -44,7 +47,21 @@ class Interpreter:
 
     def eval_program(self, program: AST.Program) -> None:
         for stmt in program.statements:
-            self.eval(stmt)
+            self.exec_stmt(stmt)
+
+    def exec_stmt(self, stmt: AST.Node) -> object | None:
+        if self.on_node_start is not None:
+            try:
+                self.on_node_start(stmt)
+            except Exception:
+                pass
+        result = self.eval(stmt)
+        if self.on_node_end is not None:
+            try:
+                self.on_node_end(stmt)
+            except Exception:
+                pass
+        return result
 
     def eval(self, node: AST.Node) -> object | None:
         if isinstance(node, AST.Assignment):
@@ -65,15 +82,15 @@ class Interpreter:
             cond_val = self._truthy(self.eval(node.cond) if node.cond is not None else self._compare(self.eval(node.left), node.op, self.eval(node.right)))  # type: ignore[arg-type]
             if cond_val:
                 for s in node.body or []:
-                    self.eval(s)
+                    self.exec_stmt(s)
             else:
                 for s in node.else_body or []:
-                    self.eval(s)
+                    self.exec_stmt(s)
             return None
         if isinstance(node, AST.While):
             while self._truthy(self.eval(node.cond)):
                 for s in node.body:
-                    self.eval(s)
+                    self.exec_stmt(s)
             return None
         if isinstance(node, AST.ForEach):
             iterable = self.eval(node.iterable)
@@ -86,7 +103,7 @@ class Interpreter:
                 for item in iterator:
                     self.env[node.var.lower()] = item
                     for s in node.body:
-                        self.eval(s)
+                        self.exec_stmt(s)
             finally:
                 if saved is None:
                     self.env.pop(node.var.lower(), None)
@@ -104,7 +121,7 @@ class Interpreter:
                 )
             for _ in range(iterations):
                 for s in node.body:
-                    self.eval(s)
+                    self.exec_stmt(s)
             return None
         if isinstance(node, AST.ExprStmt):
             value = self.eval(node.expr)
@@ -114,7 +131,7 @@ class Interpreter:
             error: Exception | None = None
             try:
                 for s in node.body:
-                    self.eval(s)
+                    self.exec_stmt(s)
             except Exception as e:  # catch Sup and general errors
                 error = e
                 if node.catch_body is not None:
@@ -124,14 +141,14 @@ class Interpreter:
                         else:
                             self.env[node.catch_name.lower()] = str(e)
                     for s in node.catch_body:
-                        self.eval(s)
+                        self.exec_stmt(s)
                 else:
                     # no catch: rethrow after finally
                     pass
             finally:
                 if node.finally_body is not None:
                     for s in node.finally_body:
-                        self.eval(s)
+                        self.exec_stmt(s)
                 if error is not None and node.catch_body is None:
                     raise error
             return None
@@ -330,6 +347,97 @@ class Interpreter:
 
     def _eval_builtin(self, node: AST.BuiltinCall) -> object:
         name = node.name
+        # Env and system
+        if name == "env_get":
+            key = str(self.eval(node.args[0]))
+            res = os.environ.get(key)
+            self.last_result = res
+            return res
+        if name == "env_set":
+            key = str(self.eval(node.args[0]))
+            val = str(self.eval(node.args[1]))
+            os.environ[key] = val
+            self.last_result = True
+            return True
+        if name == "cwd":
+            res = os.getcwd()
+            self.last_result = res
+            return res
+        if name == "join_path":
+            a = str(self.eval(node.args[0]))
+            b = str(self.eval(node.args[1]))
+            res = os.path.join(a, b)
+            self.last_result = res
+            return res
+        if name == "basename":
+            p = str(self.eval(node.args[0]))
+            res = os.path.basename(p)
+            self.last_result = res
+            return res
+        if name == "dirname":
+            p = str(self.eval(node.args[0]))
+            res = os.path.dirname(p)
+            self.last_result = res
+            return res
+        if name == "exists":
+            p = str(self.eval(node.args[0]))
+            res = os.path.exists(p)
+            self.last_result = res
+            return res
+        if name == "log":
+            msg = self.eval(node.args[0])
+            self.io.write_output(f"{msg}\n")
+            self.last_result = msg
+            return msg
+        if name in {"regex_match", "regex_search", "regex_replace"}:
+            import re as _re
+
+            if name == "regex_match":
+                pat = str(self.eval(node.args[0]))
+                text = str(self.eval(node.args[1]))
+                m = _re.match(pat, text)
+                res = bool(m)
+                self.last_result = res
+                return res
+            if name == "regex_search":
+                pat = str(self.eval(node.args[0]))
+                text = str(self.eval(node.args[1]))
+                m = _re.search(pat, text)
+                res = bool(m)
+                self.last_result = res
+                return res
+            if name == "regex_replace":
+                pat = str(self.eval(node.args[0]))
+                text = str(self.eval(node.args[1]))
+                repl = str(self.eval(node.args[2]))
+                res = _re.sub(pat, repl, text)
+                self.last_result = res
+                return res
+        if name == "args_get":
+            # Read SUP_ARGS from environment set by CLI (comma-separated JSON or simple)
+            raw = os.environ.get("SUP_ARGS", "")
+            parts: list[str]
+            if raw.startswith("[") and raw.endswith("]"):
+                try:
+                    import json as _json
+
+                    parts = [str(x) for x in _json.loads(raw)]
+                except Exception:
+                    parts = [p for p in raw.split(" ") if p]
+            else:
+                parts = [p for p in raw.split(" ") if p]
+            if len(node.args) == 0:
+                res = " ".join(parts)
+                self.last_result = res
+                return res
+            idx = self.eval(node.args[0])
+            try:
+                i = int(self._num(idx))
+            except Exception:
+                raise SupRuntimeError(message="args get expects a numeric index.")
+            res = parts[i] if 0 <= i < len(parts) else None
+            self.last_result = res
+            return res
         if name == "now":
             import datetime as _dt
 
@@ -361,6 +469,115 @@ class Interpreter:
 
             v = self.eval(node.args[0])
             res = _json.dumps(v)
+            self.last_result = res
+            return res
+        # HTTP
+        if name == "http_get":
+            url = str(self.eval(node.args[0]))
+            try:
+                import urllib.request as _r
+
+                with _r.urlopen(url) as resp:
+                    data = resp.read().decode("utf-8", errors="replace")
+                self.last_result = data
+                return data
+            except Exception as e:
+                raise SupRuntimeError(message=f"HTTP GET failed: {e}")
+        if name == "http_post":
+            url = str(self.eval(node.args[0]))
+            body = str(self.eval(node.args[1])).encode("utf-8")
+            try:
+                import urllib.request as _r
+
+                req = _r.Request(url, data=body, method="POST")
+                req.add_header("Content-Type", "application/json")
+                with _r.urlopen(req) as resp:
+                    data = resp.read().decode("utf-8", errors="replace")
+                self.last_result = data
+                return data
+            except Exception as e:
+                raise SupRuntimeError(message=f"HTTP POST failed: {e}")
+        # Subprocess
+        if name == "spawn":
+            cmd = str(self.eval(node.args[0]))
+            import subprocess as _sp
+
+            try:
+                out = _sp.check_output(cmd, shell=True, stderr=_sp.STDOUT)
+                res = out.decode("utf-8", errors="replace")
+                self.last_result = res
+                return res
+            except _sp.CalledProcessError as e:
+                raise SupRuntimeError(
+                    message=f"Process failed with code {e.returncode}: {e.output.decode('utf-8', errors='replace')}"
+                )
+        # Glob
+        if name == "glob":
+            pat = str(self.eval(node.args[0]))
+            import glob as _glob
+
+            res = _glob.glob(pat)
+            self.last_result = res
+            return res
+        # Random
+        if name == "rand_int":
+            import random as _rnd
+
+            a = int(self._num(self.eval(node.args[0])))
+            b = int(self._num(self.eval(node.args[1])))
+            res = _rnd.randint(a, b)
+            self.last_result = res
+            return res
+        if name == "rand_float":
+            import random as _rnd
+
+            res = _rnd.random()
+            self.last_result = res
+            return res
+        if name == "shuffle":
+            import random as _rnd
+
+            lst = self.eval(node.args[0])
+            if not isinstance(lst, list):
+                raise SupRuntimeError(message="shuffle expects a list.")
+            _rnd.shuffle(lst)
+            self.last_result = lst
+            return lst
+        if name == "choice":
+            import random as _rnd
+
+            lst = self.eval(node.args[0])
+            if not isinstance(lst, list):
+                raise SupRuntimeError(message="choice expects a list.")
+            res = _rnd.choice(lst)
+            self.last_result = res
+            return res
+        # Crypto
+        if name in {"hash_md5", "hash_sha1", "hash_sha256"}:
+            import hashlib as _hl
+
+            data = str(self.eval(node.args[0])).encode("utf-8")
+            if name == "hash_md5":
+                res = _hl.md5(data).hexdigest()
+            elif name == "hash_sha1":
+                res = _hl.sha1(data).hexdigest()
+            else:
+                res = _hl.sha256(data).hexdigest()
+            self.last_result = res
+            return res
+        # Datetime
+        if name == "time_now":
+            import time as _time
+
+            res = _time.time()
+            self.last_result = res
+            return res
+        if name == "format_date":
+            import datetime as _dt
+
+            ts = float(self._num(self.eval(node.args[0])))
+            fmt = str(self.eval(node.args[1]))
+            res = _dt.datetime.fromtimestamp(ts).strftime(fmt)
             self.last_result = res
             return res
         if name == "min":

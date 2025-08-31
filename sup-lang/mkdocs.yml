@@ -4,6 +4,10 @@ nav:
   - Language Spec: spec.md
   - Quickstart: quickstart.md
   - Standard Library: stdlib.md
+  - Modules: modules.md
+  - Types: types.md
+  - Versioning: versioning.md
+  - Packaging: packaging.md
 theme:
   name: readthedocs
 

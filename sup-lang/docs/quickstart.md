@@ -9,6 +9,12 @@ pip install sup-lang
 
 Hello world
 -----------
+Scaffold a project:
+```
+sup init hello-sup
+```
+
+Or create a single file `hello.sup`:
 Create `hello.sup`:
 ```
 sup
