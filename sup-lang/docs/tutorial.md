@@ -12,8 +12,10 @@ Project setup
 Create `todo.sup`:
 ```
 sup
-  make list of
+  # Initialize an empty list (grammar requires at least one item)
+  make list of 0
   set todos to the list
+  pop from todos
 
   define function called add with text
     push text to todos
@@ -27,7 +29,7 @@ sup
   end function
 
   define function called done with index
-    set n to subtract index from 1
+    set n to subtract 1 from index  # convert 1-based to 0-based
     print concat of "Done: " and get n from todos
   end function
 
