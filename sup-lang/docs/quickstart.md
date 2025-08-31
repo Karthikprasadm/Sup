@@ -7,6 +7,13 @@ Install
 pip install sup-lang
 ```
 
+From source (editable):
+```
+python -m venv .venv
+.venv\Scripts\activate
+pip install -e .
+```
+
 Hello world
 -----------
 Scaffold a project:
@@ -88,5 +95,16 @@ Project transpile (entry + imports)
 sup transpile sup-lang/examples/06_mixed.sup --out dist_py
 python dist_py/run.py
 ```
+
+Formatter and linter
+--------------------
+```
+supfmt path/to/program.sup
+suplint path/to/program.sup
+```
+
+VS Code extension
+-----------------
+Install the SUP language support extension for syntax highlighting and snippets.
 
 

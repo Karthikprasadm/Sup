@@ -1,8 +1,8 @@
 site_name: SUP Language
 nav:
   - Home: index.md
-  - Language Spec: spec.md
   - Quickstart: quickstart.md
+  - Language Spec: spec.md
   - Standard Library: stdlib.md
   - Modules: modules.md
   - Types: types.md

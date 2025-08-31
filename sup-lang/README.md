@@ -11,18 +11,42 @@ An English-like programming language focused on readability with deterministic s
 
 ![SUP Demo](assets/demo.gif)
 
-### Quickstart
+### Contents
 
-1. Create a virtual environment and install:
+- Installation
+- Quickstart
+- CLI usage
+- Formatter and linter
+- Language overview
+- Developing locally
+- Links
+
+### Installation
+
+Install from PyPI:
+```
+pip install sup-lang
+```
+
+From source (editable):
 ```
 python -m venv .venv
 .venv\\Scripts\\activate
 pip install -e .
 ```
 
-2. Run a program:
+### Quickstart
+
+Run an example:
 ```
 sup examples/06_mixed.sup
+```
+
+Hello world:
+```
+sup
+  print "Hello, SUP!"
+bye
 ```
 
 ### CLI usage
@@ -48,6 +72,12 @@ Profile and coverage:
 ```
 supprof path/to/entry.sup
 supcov path/to/entry.sup
+```
+
+Formatter and linter:
+```
+supfmt path/to/program.sup
+suplint path/to/program.sup
 ```
 
 Project commands:
@@ -271,4 +301,11 @@ Notes:
 ```
 \.venv\Scripts\python sup-lang\tools\run_tests.py
 ```
+
+### Links
+
+- Docs: https://karthikprasadm.github.io/Sup
+- VS Code extension: https://marketplace.visualstudio.com/items?itemName=wingspawn.sup-language-support
+- PyPI: https://pypi.org/project/sup-lang/
+- Issues: https://github.com/Karthikprasadm/Sup/issues
 
