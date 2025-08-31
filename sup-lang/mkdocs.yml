@@ -2,6 +2,7 @@ site_name: SUP Language
 nav:
   - Home: index.md
   - Quickstart: quickstart.md
+  - Tutorial: tutorial.md
   - Language Spec: spec.md
   - Standard Library: stdlib.md
   - Modules: modules.md
