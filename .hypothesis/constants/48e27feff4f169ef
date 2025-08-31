@@ -1,0 +1,4 @@
+# file: D:\sup2\sup-lang\sup\cli.py
+# hypothesis_version: 6.138.8
+
+['--backend', '--emit', '--opt', '--out', '--sourcemap', '--version', '.sup_cache.json', '> ', '?', 'Entry .sup file', 'SUP_ARGS', 'SUP_PATH', 'Sup language CLI', '[A-Za-z_]', '[^0-9A-Za-z_]', '_', '__main__', 'args', 'body', 'bye', 'count_expr', 'else_body', 'entry', 'expr', 'file', 'imports', 'interp', 'iterable', 'left', 'm_', 'python', 'r', 'right', 'run.py', 'src_hash', 'src_path', 'statements', 'store_true', 'sup', 'sup transpile', 'transpile', 'utf-8', 'vm', 'w']

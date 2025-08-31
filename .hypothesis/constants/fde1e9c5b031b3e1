@@ -1,0 +1,4 @@
+# file: D:\sup2\sup-lang\sup\debugger.py
+# hypothesis_version: 6.138.8
+
+['<no location>', '=>', 'Line ?', 'Usage: b <line>', 'Usage: p <name>', 'b', 'break', 'c', 'cont', 'continue', 'dbg> ', 'l', 'line', 'list', 'n', 'next', 'p', 'print', 'q', 'quit', 'result', 's', 'step']

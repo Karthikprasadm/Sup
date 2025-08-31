@@ -1,0 +1,1 @@
+{"version": 3, "file": "12_imports.sup.py", "sources": ["12_imports.sup"], "sourcesContent": ["sup\n  import mathlib\n  print mathlib.pi\n  print call mathlib.square with 7\n\n  from mathlib import square\n  print call square with 3\nbye\n\n\n"], "mappings": ";;;;;;AACA;AACA;AACA;AAEA;AACA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;;"}

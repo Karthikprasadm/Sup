@@ -1,0 +1,14 @@
+{
+  "12_imports": {
+    "src_path": "examples\\12_imports.sup",
+    "src_hash": "72cda3ef58ba4aa34604c65b73f3eca756ad985a7a613f46adaf45c27eda3686",
+    "imports": [
+      "mathlib"
+    ]
+  },
+  "mathlib": {
+    "src_path": "D:\\sup2\\sup-lang\\examples\\mathlib.sup",
+    "src_hash": "0eb29a72083eb9aa2e7c6c5c2923faccb77b20b2d1b35b435839bb7bbd2a1804",
+    "imports": []
+  }
+}

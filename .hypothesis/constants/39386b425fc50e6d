@@ -1,0 +1,4 @@
+# file: D:\sup2\sup-lang\sup\transpiler.py
+# hypothesis_version: 6.138.8
+
+[',', ', ', '.py', ';', '__main__()', '_e', 'abs', 'and', 'concat', 'def __main__():', 'else:', 'file', 'finally:', 'global last_result', 'last_result = None', 'line', 'lower', 'mappings', 'or', 'power', 'print(last_result)', 'return None', 'sources', 'sourcesContent', 'sqrt', 'try:', 'upper', 'version', '{}']

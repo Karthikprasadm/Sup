@@ -1,0 +1,4 @@
+# file: D:\sup2\sup-lang\sup\cli.py
+# hypothesis_version: 6.138.8
+
+['*.sup', '--backend', '--debug', '--emit', '--opt', '--out', '--sourcemap', '--version', '.', '.json', '.lock', '.md', '.sup', '.sup_cache.json', '0.1.0', '> ', '?', 'Entry .sup file', 'Output directory', 'Project folder name', 'README.md', 'SUP_ARGS', 'SUP_PATH', 'Sup language CLI', 'Wrote sup.lock', '[A-Za-z_]', '[^0-9A-Za-z_]', '_', '__main__', 'args', 'body', 'build', 'bye', 'count_expr', 'dir', 'dist_sup', 'else_body', 'entry', 'expr', 'file', 'imports', 'init', 'interp', 'iterable', 'left', 'lock', 'm_', 'main.sup', 'modules', 'name', 'path', 'project', 'publish', 'python', 'r', 'rb', 'right', 'run.py', 'sha256', 'src_hash', 'src_path', 'statements', 'store_true', 'sup', 'sup build', 'sup init', 'sup lock', 'sup publish', 'sup test', 'sup transpile', 'sup.json', 'sup.json not found\n', 'sup.lock', 'test', 'tests', 'transpile', 'utf-8', 'version', 'vm', 'w', 'w:gz']

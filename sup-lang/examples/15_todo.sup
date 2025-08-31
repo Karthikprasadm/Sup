@@ -1,38 +1,71 @@
-sup
-  # Initialize an empty list (grammar requires at least one item)
+﻿sup
+  note Initialize an empty list
   make list of 0
-  set todos to the list
+  set todos to list
   pop from todos
 
-  define function called add with text
+  note Resolve store path to repo root (two levels up from examples)
+  set root1 to dirname of cwd
+  set root2 to dirname of root1
+  set store to join path of root2 and "todos.json"
+
+  define function called load
+    if exists of store then
+      set data to read file of store
+      set parsed to json parse of data
+      while length of todos is greater than 0
+        pop from todos
+      end while
+      for each item in parsed
+        push item to todos
+      end for
+    else
+      note keep existing empty todos
+    end if
+  end function
+
+  define function called save
+    set s to json stringify of todos
+    set _ to write file of store and s
+  end function
+
+  define function called add_item with text
     push text to todos
+    call save
     print concat of "Added: " and text
   end function
 
-  define function called list
+  define function called list_items
     for each item in todos
       print item
     end for
   end function
 
-  define function called done with index
-    # Convert 1-based to 0-based: index - 1
-    set n to subtract 1 from index
-    print concat of "Done: " and get n from todos
+  define function called mark_done
+    if length of todos is greater than 0 then
+      set item to pop from todos
+      call save
+      print concat of "Done: " and item
+    else
+      print "Nothing to do"
+    end if
   end function
 
+  call load
   set cmd to args get of 0
   if cmd is equal to "add" then
-    set text to args get of 1
-    call add with text
-  else if cmd is equal to "list" then
-    call list
-  else if cmd is equal to "done" then
-    set idx to args get of 1
-    call done with idx
+    set full to args get
+    set text to regex replace of "^add\\s+" and full and ""
+    call add_item with text
   else
-    print "Usage: sup 15_todo.sup [add TEXT|list|done INDEX]"
+    if cmd is equal to "list" then
+      call list_items
+    else
+      if cmd is equal to "done" then
+        call mark_done
+      else
+        print "Usage: sup 15_todo.sup [add TEXT|list|done]"
+      end if
+    end if
   end if
 bye
-
-

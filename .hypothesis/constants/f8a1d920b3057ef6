@@ -1,0 +1,4 @@
+# file: D:\sup2\sup-lang\sup\interpreter.py
+# hypothesis_version: 6.138.8
+
+['!=', '*', '+', '-', '.', '/', '<', '<=', '==', '>', '>=', 'Content-Type', 'Division by zero.', 'POST', 'SUP_ARGS', 'SUP_PATH', '[', ']', 'abs', 'and', 'application/json', 'args_get', 'basename', 'ceil', 'choice', 'concat', 'contains', 'cwd', 'dirname', 'env_get', 'env_set', 'exists', 'floor', 'format_date', 'glob', 'hash_md5', 'hash_sha1', 'hash_sha256', 'http_get', 'http_post', 'join', 'join expects a list.', 'join_path', 'json_parse', 'json_stringify', 'line', 'list', 'log', 'lower', 'map', 'max', 'min', 'now', 'or', 'power', 'rand_float', 'rand_int', 'read_file', 'regex_match', 'regex_replace', 'regex_search', 'replace', 'shuffle', 'spawn', 'sqrt', 'time_now', 'trim', 'upper', 'utf-8', 'w', 'write_file']

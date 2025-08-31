@@ -1,3 +1,59 @@
 *.vsix
 sup-lang/vscode-extension/*.vsix
 
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+.eggs/
+dist/
+build/
+.site/
+.site*/
+*.coverage
+.coverage*
+.pytest_cache/
+
+# Virtualenvs
+.venv/
+.fresh-venv/
+
+# MkDocs
+site/
+
+# VS Code
+.vscode/
+
+# SUP cache/artifacts
+.sup_cache.json
+sup-lang/dist/
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+.eggs/
+dist/
+build/
+.site/
+.site*/
+*.coverage
+.coverage*
+.pytest_cache/
+
+# Virtualenvs
+.venv/
+.fresh-venv/
+
+# MkDocs
+site/
+
+# VS Code
+.vscode/
+
+# SUP cache/artifacts
+.sup_cache.json
+sup-lang/dist/

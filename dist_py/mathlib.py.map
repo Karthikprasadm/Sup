@@ -1,0 +1,1 @@
+{"version": 3, "file": "mathlib.sup.py", "sources": ["mathlib.sup"], "sourcesContent": ["sup\n  set pi to 3.1415\n  define function called square with x\n    return multiply x and x\n  end function\nbye\n\n\n"], "mappings": ";;;;;;AAGA;AAAA;AAAA;AAAA;AADA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;;"}

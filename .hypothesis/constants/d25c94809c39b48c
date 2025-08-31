@@ -1,0 +1,4 @@
+# file: D:\sup2\sup-lang\sup\optimizer.py
+# hypothesis_version: 6.138.8
+
+[0.0, 1.0, '!=', '*', '+', '-', '/', '<', '<=', '==', '>', '>=']

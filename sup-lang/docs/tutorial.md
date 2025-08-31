@@ -12,7 +12,7 @@ Project setup
 Create `todo.sup`:
 ```
 sup
-  # Initialize an empty list (grammar requires at least one item)
+  note Initialize an empty list (grammar requires at least one item)
   make list of 0
   set todos to the list
   pop from todos
@@ -29,7 +29,8 @@ sup
   end function
 
   define function called done with index
-    set n to subtract 1 from index  # convert 1-based to 0-based
+    note convert 1-based to 0-based
+    set n to subtract 1 from index
     print concat of "Done: " and get n from todos
   end function
 
