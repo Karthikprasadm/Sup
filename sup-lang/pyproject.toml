@@ -1,4 +1,4 @@
-[build-system]
+﻿[build-system]
 requires = ["hatchling>=1.18.0"]
 build-backend = "hatchling.build"
 
@@ -37,4 +37,5 @@ packages = ["sup"]
 [tool.pytest.ini_options]
 addopts = "-q"
 testpaths = ["tests"]
+
 
