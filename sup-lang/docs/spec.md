@@ -14,6 +14,32 @@ Grammar highlights:
 
 Booleans and comparisons: `and`, `or`, `not`, `==`, `!=`, `<`, `>`, `<=`, `>=`.
 
+Examples
+--------
+Assignment and print:
+```
+sup
+  set x to add 2 and 3
+  print the result
+bye
+```
+
+If/else and loops:
+```
+sup
+  set n to 3
+  if n is greater than 2 then
+    print "ok"
+  else
+    print "no"
+  end if
+
+  repeat 2 times
+    print n
+  end repeat
+bye
+```
+
 Standard Library (selected)
 ---------------------------
 - Strings/Math: `upper of S`, `lower of S`, `trim of S`, `concat of A and B`, `power of A and B`, `sqrt of A`, `abs of A`, `min of A and B`, `max of A and B`, `floor of A`, `ceil of A`, `contains of A and B`, `join of SEPARATOR and LIST`
