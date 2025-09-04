@@ -18,7 +18,7 @@ jobs:
         run: |
           python -m pip install -U pip
           python -m pip install -e ./sup-lang
-          python -m pip install pytest
+          python -m pip install pytest hypothesis
       - name: Run tests with coverage
         run: |
           python -m pip install pytest-cov

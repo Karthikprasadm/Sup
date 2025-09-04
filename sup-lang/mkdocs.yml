@@ -4,6 +4,15 @@ nav:
   - Language Spec: spec.md
   - Quickstart: quickstart.md
   - Standard Library: stdlib.md
+  - Examples: examples.md
+  - Benchmarks: benchmarks.md
+  - Contributing: contributing.md
+  - Code of Conduct: code_of_conduct.md
+  - Governance: governance.md
+  - Security: security.md
+  - RFCs:
+    - Overview: rfcs/index.md
+    - Template: rfcs/0000-template.md
 theme:
   name: readthedocs
 
