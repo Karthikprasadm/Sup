@@ -1,0 +1,4 @@
+# file: D:\sup2\sup-lang\sup\cli.py
+# hypothesis_version: 6.138.8
+
+['--emit', '--out', '--version', '.sup', '0.0.0', '> ', '?', 'Build a SUP project', 'Entry .sup file', 'SUP_PATH', 'Sup language CLI', '[A-Za-z_]', '[^0-9A-Za-z_]', '_', '__main__', 'app', 'body', 'build', 'bye', 'count_expr', 'dist_sup', 'else_body', 'entry', 'expr', 'file', 'iterable', 'left', 'lock', 'm_', 'main.sup', 'name', 'project_dir', 'publish', 'python', 'right', 'run.py', 'statements', 'store_true', 'sup', 'sup build', 'sup lock', 'sup publish', 'sup test', 'sup transpile', 'sup.json', 'sup.lock', 'test', 'tests_dir', 'transpile', 'utf-8', 'version', 'w', 'w:gz']

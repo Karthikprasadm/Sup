@@ -20,6 +20,9 @@ class _PythonEmitter:
     def emit_program(self, program: AST.Program) -> str:
         self.w("# Transpiled from sup")
         self.w("from sys import stdout")
+        self.w(
+            "def _fmt(v):\n    return float(v) if isinstance(v, (int, float)) and not isinstance(v, bool) else v"
+        )
         # last_result mirrors interpreter semantics
         self.w("last_result = None")
         self.w()
@@ -31,6 +34,28 @@ class _PythonEmitter:
         # Main body
         self.w("def __main__():")
         self.indent += 1
+        # Declare globals up-front for any assigned names to avoid 'used prior to global' errors
+        assigned = set()
+
+        def collect_assigned(node: AST.Node) -> None:
+            from . import ast as _AST
+
+            if isinstance(node, _AST.Assignment):
+                assigned.add(node.name)
+            for attr in ("statements", "body", "else_body"):
+                if hasattr(node, attr):
+                    val = getattr(node, attr)
+                    if isinstance(val, list):
+                        for x in val:
+                            if isinstance(x, _AST.Node):
+                                collect_assigned(x)
+                    elif isinstance(val, _AST.Node):
+                        collect_assigned(val)
+
+        for s in program.statements:
+            collect_assigned(s)
+        for name in sorted(assigned):
+            self.w(f"global {name}")
         for stmt in program.statements:
             if not isinstance(stmt, AST.FunctionDef):
                 self.emit_stmt(stmt)
@@ -62,8 +87,6 @@ class _PythonEmitter:
     def emit_stmt(self, node: AST.Node) -> None:
         if isinstance(node, AST.Assignment):
             value = self.emit_expr(node.expr)
-            # Ensure variables assigned inside functions (including __main__) are module globals
-            self.w(f"global {node.name}")
             self.w(f"{node.name} = {value}")
             self.w(f"last_result = {node.name}")
             return
@@ -115,7 +138,7 @@ class _PythonEmitter:
             if node.expr is None:
                 self.w("return None")
             else:
-                self.w(f"return {self.emit_expr(node.expr)}")
+                self.w(f"return _fmt({self.emit_expr(node.expr)})")
             return
         if isinstance(node, AST.FunctionDef):
             # already emitted

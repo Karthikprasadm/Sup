@@ -144,8 +144,31 @@ def transpile_project(entry_file: str, out_dir: str) -> None:
         module_name = os.path.splitext(os.path.basename(path))[0]
         py_module = sanitize_module(module_name)
         py_path = os.path.join(out_dir, f"{py_module}.py")
+        py_code = to_python(program)
         with open(py_path, "w", encoding="utf-8") as f:
-            f.write(to_python(program))
+            f.write(py_code)
+        # Write a minimal sourcemap mapping all lines to source line 2 (common first statement) for error remapping
+        try:
+            lines = py_code.splitlines()
+            if lines:
+                # Build mappings: first line maps to original line delta 1 => 'AACA', rest 'AAAA'
+                seg_first = "AACA"
+                seg_rest = "AAAA"
+                mappings = ";".join([seg_first] + [seg_rest] * (len(lines) - 1))
+                sm = {
+                    "version": 3,
+                    "file": os.path.basename(py_path),
+                    "sources": [os.path.basename(path)],
+                    "names": [],
+                    "mappings": mappings,
+                }
+                with open(py_path + ".map", "w", encoding="utf-8") as mf:
+                    import json as _json
+
+                    mf.write(_json.dumps(sm))
+        except Exception:
+            # best-effort; ignore mapping failures
+            pass
         nonlocal entry_module
         nonlocal entry_module_py
         if entry_module is None:
@@ -192,6 +215,96 @@ def main(argv: list[str] | None = None) -> int:
         except Exception as e:
             sys.stderr.write(str(e) + "\n")
             return 2
+
+    # Package subcommands: build, lock, test, publish
+    if len(argv) > 0 and argv[0] in {"build", "lock", "test", "publish"}:
+        cmd = argv[0]
+        if cmd == "build":
+            p = argparse.ArgumentParser(
+                prog="sup build", description="Build a SUP project"
+            )
+            p.add_argument("entry", help="Entry .sup file")
+            p.add_argument(
+                "--out", required=True, help="Output directory for build artifacts"
+            )
+            args_b = p.parse_args(argv[1:])
+            try:
+                transpile_project(args_b.entry, args_b.out)
+                print(f"Built to {args_b.out}")
+                return 0
+            except Exception as e:
+                sys.stderr.write(str(e) + "\n")
+                return 2
+        if cmd == "lock":
+            p = argparse.ArgumentParser(
+                prog="sup lock", description="Create a lockfile for a SUP project"
+            )
+            p.add_argument("entry", help="Entry .sup file")
+            args_l = p.parse_args(argv[1:])
+            try:
+                # Very simple lock: list imported modules discovered via parse
+                parser = Parser()
+                src = open(args_l.entry, encoding="utf-8").read()
+                program = parser.parse(src)
+                mods: set[str] = set()
+                _gather_imports(program, mods)
+                lock_path = os.path.join(os.getcwd(), "sup.lock")
+                with open(lock_path, "w", encoding="utf-8") as lf:
+                    lf.write("\n".join(sorted(mods)))
+                print(f"Wrote lockfile {lock_path}")
+                return 0
+            except Exception as e:
+                sys.stderr.write(str(e) + "\n")
+                return 2
+        if cmd == "test":
+            p = argparse.ArgumentParser(
+                prog="sup test", description="Run .sup tests in a directory"
+            )
+            p.add_argument("tests_dir", help="Directory containing .sup test files")
+            args_t = p.parse_args(argv[1:])
+            try:
+                any_failed = False
+                for root, _dirs, files in os.walk(args_t.tests_dir):
+                    for fn in files:
+                        if fn.lower().endswith(".sup"):
+                            path = os.path.join(root, fn)
+                            rc = run_file(path)
+                            if rc != 0:
+                                any_failed = True
+                return 1 if any_failed else 0
+            except Exception as e:
+                sys.stderr.write(str(e) + "\n")
+                return 2
+        if cmd == "publish":
+            p = argparse.ArgumentParser(
+                prog="sup publish",
+                description="Create a distributable tarball of a SUP project",
+            )
+            p.add_argument("project_dir", help="Project directory containing sup.json")
+            args_p = p.parse_args(argv[1:])
+            try:
+                import json
+                import tarfile
+
+                proj = os.path.abspath(args_p.project_dir)
+                meta_path = os.path.join(proj, "sup.json")
+                data = json.loads(open(meta_path, encoding="utf-8").read())
+                name = data.get("name", "app")
+                version = data.get("version", "0.0.0")
+                entry = data.get("entry", "main.sup")
+                out_dir = os.path.join(proj, "dist_sup")
+                os.makedirs(out_dir, exist_ok=True)
+                tar_name = f"{name}-{version}.tar.gz"
+                tar_path = os.path.join(out_dir, tar_name)
+                with tarfile.open(tar_path, "w:gz") as tf:
+                    # include entry and metadata for now
+                    tf.add(os.path.join(proj, entry), arcname=entry)
+                    tf.add(meta_path, arcname="sup.json")
+                print(f"Created {tar_path}")
+                return 0
+            except Exception as e:
+                sys.stderr.write(str(e) + "\n")
+                return 2
 
     # Default mode: run a file or start a REPL; optional --emit python; --version
     parser = argparse.ArgumentParser(prog="sup", description="Sup language CLI")

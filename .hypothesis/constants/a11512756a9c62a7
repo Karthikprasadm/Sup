@@ -1,0 +1,4 @@
+# file: D:\sup2\sup-lang\sup\interpreter.py
+# hypothesis_version: 6.138.8
+
+['!=', '*', '+', '-', '.', '/', '<', '<=', '==', '>', '>=', 'Division by zero.', 'SUP_PATH', 'abs', 'and', 'ceil', 'concat', 'contains', 'floor', 'join', 'join expects a list.', 'json_parse', 'json_stringify', 'line', 'list', 'lower', 'map', 'max', 'min', 'now', 'or', 'power', 'read_file', 'sqrt', 'trim', 'upper', 'utf-8', 'w', 'write_file']

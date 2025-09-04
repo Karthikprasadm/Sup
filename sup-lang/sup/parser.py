@@ -44,6 +44,17 @@ class Lexer:
             "sup": "sup",
             "bye": "bye",
             "note": "note",
+            # Builtin phrases (fallbacks if missing in lexicon file)
+            "env get": "env_get",
+            "join path": "join_path",
+            "regex replace": "regex_replace",
+            "regex match": "regex_match",
+            "regex search": "regex_search",
+            "glob": "glob",
+            "json stringify": "json_stringify",
+            "json parse": "json_parse",
+            "read file": "read_file",
+            "write file": "write_file",
         }
         for p, k in defaults.items():
             phrase_to_key.setdefault(p, k)
@@ -205,6 +216,18 @@ class Lexer:
             "write_file": ("WRITE_FILE", None),
             "json_parse": ("JSON_PARSE", None),
             "json_stringify": ("JSON_STRINGIFY", None),
+            # env/path/fs/regex/glob
+            "env_get": ("ENV_GET", None),
+            "env_set": ("ENV_SET", None),
+            "cwd": ("CWD", None),
+            "join_path": ("JOIN_PATH", None),
+            "basename": ("BASENAME", None),
+            "dirname": ("DIRNAME", None),
+            "exists": ("EXISTS", None),
+            "glob": ("GLOB", None),
+            "regex_match": ("REGEX_MATCH", None),
+            "regex_search": ("REGEX_SEARCH", None),
+            "regex_replace": ("REGEX_REPLACE", None),
             "define": ("DEFINE", None),
             "function": ("FUNCTION", None),
             "called": ("CALLED", None),
@@ -684,6 +707,17 @@ class Parser:
             "WRITE_FILE",
             "JSON_PARSE",
             "JSON_STRINGIFY",
+            "ENV_GET",
+            "ENV_SET",
+            "CWD",
+            "JOIN_PATH",
+            "BASENAME",
+            "DIRNAME",
+            "EXISTS",
+            "GLOB",
+            "REGEX_MATCH",
+            "REGEX_SEARCH",
+            "REGEX_REPLACE",
         }:
             return self.collection_or_builtin()
         return self.value()
@@ -760,7 +794,8 @@ class Parser:
         if tok.type == "LENGTH":
             start = self.advance()
             self.expect("OF", "Expected 'of' after 'length'.")
-            target = self.value()
+            # allow nested expressions such as 'length of join of "," and list'
+            target = self.expression()
             node = AST.Length(target=target)
             node.line = start.line
             return node
@@ -822,6 +857,15 @@ class Parser:
             node = AST.BuiltinCall(name="join", args=[sep, lst])
             node.line = start.line
             return node
+        if tok.type == "JOIN_PATH":
+            start = self.advance()
+            self.expect("OF", "Expected 'of' after 'join path'.")
+            a = self.value()
+            self.expect("AND", "Expected 'and' in join path.")
+            b = self.value()
+            node = AST.BuiltinCall(name="join_path", args=[a, b])
+            node.line = start.line
+            return node
         if tok.type == "READ_FILE":
             start = self.advance()
             self.expect("OF", "Expected 'of' after 'read file'.")
@@ -841,15 +885,66 @@ class Parser:
         if tok.type == "JSON_PARSE":
             start = self.advance()
             self.expect("OF", "Expected 'of' after 'json parse'.")
-            s = self.value()
+            s = self.expression()
             node = AST.BuiltinCall(name="json_parse", args=[s])
             node.line = start.line
             return node
         if tok.type == "JSON_STRINGIFY":
             start = self.advance()
             self.expect("OF", "Expected 'of' after 'json stringify'.")
-            v = self.value()
+            v = self.expression()
             node = AST.BuiltinCall(name="json_stringify", args=[v])
+            node.line = start.line
+            return node
+        if tok.type == "ENV_GET":
+            start = self.advance()
+            self.expect("OF", "Expected 'of' after 'env get'.")
+            k = self.value()
+            node = AST.BuiltinCall(name="env_get", args=[k])
+            node.line = start.line
+            return node
+        if tok.type == "CWD":
+            start = self.advance()
+            node = AST.BuiltinCall(name="cwd", args=[])
+            node.line = start.line
+            return node
+        if tok.type == "BASENAME":
+            start = self.advance()
+            self.expect("OF", "Expected 'of' after 'basename'.")
+            p = self.value()
+            node = AST.BuiltinCall(name="basename", args=[p])
+            node.line = start.line
+            return node
+        if tok.type == "DIRNAME":
+            start = self.advance()
+            self.expect("OF", "Expected 'of' after 'dirname'.")
+            p = self.value()
+            node = AST.BuiltinCall(name="dirname", args=[p])
+            node.line = start.line
+            return node
+        if tok.type == "EXISTS":
+            start = self.advance()
+            self.expect("OF", "Expected 'of' after 'exists'.")
+            p = self.value()
+            node = AST.BuiltinCall(name="exists", args=[p])
+            node.line = start.line
+            return node
+        if tok.type == "GLOB":
+            start = self.advance()
+            self.expect("OF", "Expected 'of' after 'glob'.")
+            pattern = self.value()
+            node = AST.BuiltinCall(name="glob", args=[pattern])
+            node.line = start.line
+            return node
+        if tok.type == "REGEX_REPLACE":
+            start = self.advance()
+            self.expect("OF", "Expected 'of' after 'regex replace'.")
+            pat = self.value()
+            self.expect("AND", "Expected 'and' in regex replace.")
+            text = self.value()
+            self.expect("AND", "Expected second 'and' in regex replace.")
+            repl = self.value()
+            node = AST.BuiltinCall(name="regex_replace", args=[pat, text, repl])
             node.line = start.line
             return node
         # No more builtins

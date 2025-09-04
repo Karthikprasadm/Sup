@@ -40,12 +40,26 @@ jobs:
       - name: Package VS Code extension
         working-directory: sup-lang/vscode-extension
         run: |
-          npm i -g @vscode/vsce
-          vsce package
+          npm i -g @vscode/vsce ovsx
+          vsce package --no-yarn
       - name: Upload VSIX to release
         uses: softprops/action-gh-release@v2
         with:
           files: sup-lang/vscode-extension/*.vsix
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Publish to VS Code Marketplace
+        working-directory: sup-lang/vscode-extension
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+        run: |
+          VSIX=$(ls -t *.vsix | head -n1)
+          vsce publish --packagePath "$VSIX" -p "$VSCE_PAT"
+      - name: Publish to Open VSX
+        working-directory: sup-lang/vscode-extension
+        env:
+          OVSX_PAT: ${{ secrets.OVSX_PAT }}
+        run: |
+          VSIX=$(ls -t *.vsix | head -n1)
+          ovsx publish "$VSIX" -p "$OVSX_PAT"
 
