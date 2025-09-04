@@ -1,9 +1,9 @@
-﻿{
-    "name":  "sup-language-support",
-    "displayName":  "SUP â€“ Englishâ€‘like Language Syntax",
+{
+    "name":  "sup-lang-support",
+    "displayName":  "SUP - English-like Language Syntax",
     "description":  "Basic syntax highlighting for the SUP programming language (English-like).",
-    "publisher":  "wingspawn",
-    "version":  "0.2.3",
+    "publisher":  "Karthikprasadm",
+    "version":  "2.3.0",
     "engines":  {
                     "vscode":  "^1.70.0"
                 },

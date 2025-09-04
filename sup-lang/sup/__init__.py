@@ -1,6 +1,6 @@
 """Sup Language package."""
 
-__version__ = "0.2.2"
+__version__ = "2.3.0"
 
 from typing import TYPE_CHECKING
 
