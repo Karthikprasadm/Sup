@@ -3,7 +3,7 @@
     "displayName":  "SUP - English-like Language Syntax",
     "description":  "Basic syntax highlighting for the SUP programming language (English-like).",
     "publisher":  "Karthikprasadm",
-    "version":  "2.3.0",
+    "version":  "2.3.1",
     "engines":  {
                     "vscode":  "^1.70.0"
                 },
@@ -23,23 +23,23 @@
                    },
     "license":  "MIT",
     "contributes":  {
+                        "grammars":  [
+                                         {
+                                             "path":  "syntaxes/sup.tmLanguage.json",
+                                             "language":  "sup",
+                                             "scopeName":  "source.sup"
+                                         }
+                                     ],
                         "languages":  [
                                           {
-                                              "id":  "sup",
                                               "aliases":  [
                                                               "Sup"
                                                           ],
                                               "extensions":  [
                                                                  ".sup"
-                                                             ]
+                                                             ],
+                                              "id":  "sup"
                                           }
-                                      ],
-                        "grammars":  [
-                                         {
-                                             "language":  "sup",
-                                             "scopeName":  "source.sup",
-                                             "path":  "syntaxes/sup.tmLanguage.json"
-                                         }
-                                     ]
+                                      ]
                     }
 }
