@@ -3,3 +3,25 @@ sup-lang/vscode-extension/*.vsix
 
 
 .env
+
+# Local env/build
+.venv/
+.fresh-venv/
+dist_py*/
+sup-lang/site/
+sup-lang/dist/
+build/
+dist/
+__pycache__/
+.pytest_cache/
+
+# Local env/build
+.venv/
+.fresh-venv/
+dist_py*/
+sup-lang/site/
+sup-lang/dist/
+build/
+dist/
+__pycache__/
+.pytest_cache/
