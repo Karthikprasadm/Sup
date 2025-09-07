@@ -1,4 +1,4 @@
-exclude: ^(dist_py/|dist_py_smoke2/|sup-lang/dist/|sup-lang/vscode-extension/.*\.vsix$)
+exclude: ^(\.venv/|\.fresh-venv/|dist_py/|dist_py_.*/|dist_py_smoke2/|dist_py_try1/|sup-lang/dist/|sup-lang/site/|build/|dist/|__pycache__/|\.pytest_cache/|sup-lang/vscode-extension/.*\.vsix$)
 repos:
   - repo: https://github.com/psf/black
     rev: 25.1.0
