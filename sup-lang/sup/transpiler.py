@@ -8,14 +8,23 @@ def to_python(program: AST.Program) -> str:
     return emitter.emit_program(program)
 
 
+def to_python_with_map(program: AST.Program) -> tuple[str, list[int | None]]:
+    emitter = _PythonEmitter()
+    code = emitter.emit_program(program)
+    return code, emitter.src_lines
+
+
 class _PythonEmitter:
     def __init__(self) -> None:
         self.lines: list[str] = []
         self.indent = 0
         self.in_function = 0
+        self.src_lines: list[int | None] = []
+        self._current_src_line: int | None = None
 
     def w(self, line: str = "") -> None:
         self.lines.append("    " * self.indent + line)
+        self.src_lines.append(self._current_src_line)
 
     def emit_program(self, program: AST.Program) -> str:
         self.w("# Transpiled from sup")
@@ -58,27 +67,26 @@ class _PythonEmitter:
             self.w(f"global {name}")
         for stmt in program.statements:
             if not isinstance(stmt, AST.FunctionDef):
+                self._current_src_line = getattr(stmt, "line", None)
                 self.emit_stmt(stmt)
         self.indent -= 1
         self.w()
-        self.w("if __name__ == '__main__':")
+        # Execute when run as a script or via runpy.run_path (which sets __spec__ to None)
+        self.w("if __name__ == '__main__' or globals().get('__spec__') is None:")
         self.indent += 1
-        self.w("__main__()")
-        self.indent -= 1
-        self.w("else:")
-        self.indent += 1
-        self.w("# Initialize module state on import")
         self.w("__main__()")
         self.indent -= 1
         return "\n".join(self.lines) + "\n"
 
     def emit_function(self, fn: AST.FunctionDef) -> None:
         params = ", ".join(fn.params)
+        self._current_src_line = getattr(fn, "line", None)
         self.w(f"def {fn.name}({params}):")
         self.indent += 1
         self.w("global last_result")
         self.in_function += 1
         for s in fn.body:
+            self._current_src_line = getattr(s, "line", None)
             self.emit_stmt(s)
         self.in_function -= 1
         self.indent -= 1
@@ -101,12 +109,14 @@ class _PythonEmitter:
             self.w(f"if {self.emit_expr(cond)}:")
             self.indent += 1
             for s in node.body:
+                self._current_src_line = getattr(s, "line", None)
                 self.emit_stmt(s)
             self.indent -= 1
             if node.else_body is not None:
                 self.w("else:")
                 self.indent += 1
                 for s in node.else_body:
+                    self._current_src_line = getattr(s, "line", None)
                     self.emit_stmt(s)
                 self.indent -= 1
             return
@@ -114,6 +124,7 @@ class _PythonEmitter:
             self.w(f"while {self.emit_expr(node.cond)}:")
             self.indent += 1
             for s in node.body:
+                self._current_src_line = getattr(s, "line", None)
                 self.emit_stmt(s)
             self.indent -= 1
             return
@@ -121,6 +132,7 @@ class _PythonEmitter:
             self.w(f"for {node.var} in {self.emit_expr(node.iterable)}:")
             self.indent += 1
             for s in node.body:
+                self._current_src_line = getattr(s, "line", None)
                 self.emit_stmt(s)
             self.indent -= 1
             return
@@ -128,6 +140,7 @@ class _PythonEmitter:
             self.w(f"for _ in range(int({self.emit_expr(node.count_expr)})):")
             self.indent += 1
             for s in node.body:
+                self._current_src_line = getattr(s, "line", None)
                 self.emit_stmt(s)
             self.indent -= 1
             return
@@ -233,3 +246,37 @@ class _PythonEmitter:
                 return mapping[node.name](args)
             raise NotImplementedError(f"Unsupported builtin {node.name}")
         raise NotImplementedError(f"Unsupported expression {type(node).__name__}")
+
+
+_VLQ_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
+
+
+def _to_vlq_signed(value: int) -> int:
+    return (value << 1) ^ (value >> 31)
+
+
+def _encode_vlq(value: int) -> str:
+    vlq = _to_vlq_signed(value)
+    out = ""
+    while True:
+        digit = vlq & 31
+        vlq >>= 5
+        if vlq:
+            digit |= 32
+        out += _VLQ_CHARS[digit]
+        if not vlq:
+            break
+    return out
+
+
+def build_sourcemap_mappings(gen_src_lines: list[int | None]) -> str:
+    mappings: list[str] = []
+    last_orig_line = 0
+    for src_line in gen_src_lines:
+        if src_line is None:
+            mappings.append("")
+            continue
+        seg = f"{_encode_vlq(0)}{_encode_vlq(0)}{_encode_vlq(max(0, src_line - 1 - last_orig_line))}{_encode_vlq(0)}"
+        mappings.append(seg)
+        last_orig_line = src_line - 1
+    return ";".join(mappings)

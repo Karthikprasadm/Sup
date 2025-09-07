@@ -8,9 +8,11 @@ import sys
 from . import __version__
 from .errors import SupError
 from .interpreter import Interpreter
+from .optimizer import optimize
 from .parser import AST  # type: ignore
 from .parser import Parser
-from .transpiler import to_python
+from .transpiler import build_sourcemap_mappings, to_python, to_python_with_map
+from .typecheck import check as tc_check
 
 
 def run_source(
@@ -144,28 +146,23 @@ def transpile_project(entry_file: str, out_dir: str) -> None:
         module_name = os.path.splitext(os.path.basename(path))[0]
         py_module = sanitize_module(module_name)
         py_path = os.path.join(out_dir, f"{py_module}.py")
-        py_code = to_python(program)
+        py_code, src_lines = to_python_with_map(program)
         with open(py_path, "w", encoding="utf-8") as f:
             f.write(py_code)
-        # Write a minimal sourcemap mapping all lines to source line 2 (common first statement) for error remapping
+        # Write a sourcemap using the per-line source mapping captured by the emitter
         try:
-            lines = py_code.splitlines()
-            if lines:
-                # Build mappings: first line maps to original line delta 1 => 'AACA', rest 'AAAA'
-                seg_first = "AACA"
-                seg_rest = "AAAA"
-                mappings = ";".join([seg_first] + [seg_rest] * (len(lines) - 1))
-                sm = {
-                    "version": 3,
-                    "file": os.path.basename(py_path),
-                    "sources": [os.path.basename(path)],
-                    "names": [],
-                    "mappings": mappings,
-                }
-                with open(py_path + ".map", "w", encoding="utf-8") as mf:
-                    import json as _json
+            mappings = build_sourcemap_mappings(src_lines)
+            sm = {
+                "version": 3,
+                "file": os.path.basename(py_path),
+                "sources": [os.path.basename(path)],
+                "names": [],
+                "mappings": mappings,
+            }
+            with open(py_path + ".map", "w", encoding="utf-8") as mf:
+                import json as _json
 
-                    mf.write(_json.dumps(sm))
+                mf.write(_json.dumps(sm))
         except Exception:
             # best-effort; ignore mapping failures
             pass
@@ -216,9 +213,33 @@ def main(argv: list[str] | None = None) -> int:
             sys.stderr.write(str(e) + "\n")
             return 2
 
-    # Package subcommands: build, lock, test, publish
-    if len(argv) > 0 and argv[0] in {"build", "lock", "test", "publish"}:
+    # Package/typecheck subcommands: build, lock, test, publish, check, init
+    if len(argv) > 0 and argv[0] in {
+        "build",
+        "lock",
+        "test",
+        "publish",
+        "check",
+        "init",
+    }:
         cmd = argv[0]
+        if cmd == "check":
+            p = argparse.ArgumentParser(
+                prog="sup check", description="Static checks for a SUP file"
+            )
+            p.add_argument("file", help=".sup file to check")
+            args_c = p.parse_args(argv[1:])
+            try:
+                src = open(args_c.file, encoding="utf-8").read()
+                program = Parser().parse(src)
+                errs = tc_check(program)
+                for e in errs:
+                    loc = f"{args_c.file}:{e.line}" if e.line else args_c.file
+                    print(f"{loc}: {e.code}: {e.message}")
+                return 1 if errs else 0
+            except Exception as e:
+                sys.stderr.write(str(e) + "\n")
+                return 2
         if cmd == "build":
             p = argparse.ArgumentParser(
                 prog="sup build", description="Build a SUP project"
@@ -305,12 +326,49 @@ def main(argv: list[str] | None = None) -> int:
             except Exception as e:
                 sys.stderr.write(str(e) + "\n")
                 return 2
+        if cmd == "init":
+            p = argparse.ArgumentParser(
+                prog="sup init", description="Scaffold a new SUP project"
+            )
+            p.add_argument("name", help="Project name")
+            p.add_argument("--dir", default=".", help="Target directory (default: .)")
+            args_i = p.parse_args(argv[1:])
+            try:
+                proj = os.path.abspath(args_i.dir)
+                os.makedirs(proj, exist_ok=True)
+                main_path = os.path.join(proj, "main.sup")
+                json_path = os.path.join(proj, "sup.json")
+                if not os.path.exists(main_path):
+                    with open(main_path, "w", encoding="utf-8") as f:
+                        f.write(
+                            """sup
+print "Hello from SUP!"
+bye
+"""
+                        )
+                meta = {
+                    "name": args_i.name,
+                    "version": "0.1.0",
+                    "entry": "main.sup",
+                }
+                import json as _json
+
+                with open(json_path, "w", encoding="utf-8") as jf:
+                    jf.write(_json.dumps(meta, indent=2))
+                print(f"Initialized project '{args_i.name}' in {proj}")
+                return 0
+            except Exception as e:
+                sys.stderr.write(str(e) + "\n")
+                return 2
 
     # Default mode: run a file or start a REPL; optional --emit python; --version
     parser = argparse.ArgumentParser(prog="sup", description="Sup language CLI")
     parser.add_argument("file", nargs="?", help="Path to .sup file to run")
     parser.add_argument(
         "--emit", choices=["python"], help="Transpile to target language and print"
+    )
+    parser.add_argument(
+        "--opt", action="store_true", help="Run optimizer on AST before execution"
     )
     parser.add_argument("--version", action="store_true", help="Print version and exit")
     args = parser.parse_args(argv)
@@ -324,6 +382,13 @@ def main(argv: list[str] | None = None) -> int:
             with open(args.file, encoding="utf-8") as f:
                 src = f.read()
             try:
+                if args.emit == "python":
+
+                    program = Parser().parse(src)
+                    py_code, src_lines = to_python_with_map(program)
+                    sys.stdout.write(py_code)
+                    # also write a .map next to stdout? Skip for stdout mode
+                    return 0
                 out = run_source(src, emit=args.emit)
                 if out:
                     sys.stdout.write(out)
@@ -331,7 +396,25 @@ def main(argv: list[str] | None = None) -> int:
             except SupError as e:
                 sys.stderr.write(str(e) + "\n")
                 return 2
-        return run_file(args.file)
+        # normal execute path; apply optimizer if requested
+        try:
+            with open(args.file, encoding="utf-8") as f:
+                src = f.read()
+            parser2 = Parser()
+            program = parser2.parse(src)
+            if args.opt:
+                program = optimize(program)
+            interp = Interpreter()
+            out = interp.run(program)
+            if out:
+                sys.stdout.write(out)
+            return 0
+        except SupError as e:
+            sys.stderr.write(str(e) + "\n")
+            return 2
+        except Exception as e:
+            sys.stderr.write(str(e) + "\n")
+            return 2
     return repl()
 
 
