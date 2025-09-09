@@ -3,7 +3,7 @@
     "displayName":  "SUP - English-like Language Syntax",
     "description":  "Basic syntax highlighting for the SUP programming language (English-like).",
     "publisher":  "Karthikprasadm",
-    "version":  "2.3.1",
+    "version":  "2.3.6",
     "engines":  {
                     "vscode":  "^1.70.0"
                 },
