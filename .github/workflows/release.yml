@@ -36,13 +36,16 @@ jobs:
           packages-dir: sup-lang/dist
           skip-existing: true
       - name: Sign artifacts (if secrets present)
+        continue-on-error: true
         env:
           GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
           GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
         run: |
           if [ -n "${GPG_PRIVATE_KEY}" ] && [ -n "${GPG_PASSPHRASE}" ]; then
-            echo "$GPG_PRIVATE_KEY" | gpg --batch --import
-            for f in sup-lang/dist/*; do gpg --batch --yes --pinentry-mode loopback --passphrase "$GPG_PASSPHRASE" --detach-sign --armor "$f"; done
+            printf "%s" "$GPG_PRIVATE_KEY" | gpg --batch --import || { echo "Invalid GPG_PRIVATE_KEY; skipping signing"; exit 0; }
+            for f in sup-lang/dist/*; do
+              gpg --batch --yes --pinentry-mode loopback --passphrase "$GPG_PASSPHRASE" --detach-sign --armor "$f" || echo "Sign failed for $f; continuing"
+            done
           else
             echo "GPG secrets not set; skipping signing."
           fi
