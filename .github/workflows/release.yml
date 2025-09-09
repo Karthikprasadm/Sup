@@ -35,14 +35,17 @@ jobs:
           password: ${{ secrets.PYPI_API_TOKEN }}
           packages-dir: sup-lang/dist
           skip-existing: true
-      - name: Sign artifacts
-        if: ${{ secrets.GPG_PRIVATE_KEY && secrets.GPG_PASSPHRASE }}
+      - name: Sign artifacts (if secrets present)
         env:
           GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
           GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
         run: |
-          echo "$GPG_PRIVATE_KEY" | gpg --batch --import
-          for f in sup-lang/dist/*; do gpg --batch --yes --pinentry-mode loopback --passphrase "$GPG_PASSPHRASE" --detach-sign --armor "$f"; done
+          if [ -n "${GPG_PRIVATE_KEY}" ] && [ -n "${GPG_PASSPHRASE}" ]; then
+            echo "$GPG_PRIVATE_KEY" | gpg --batch --import
+            for f in sup-lang/dist/*; do gpg --batch --yes --pinentry-mode loopback --passphrase "$GPG_PASSPHRASE" --detach-sign --armor "$f"; done
+          else
+            echo "GPG secrets not set; skipping signing."
+          fi
       - name: Upload release artifacts
         uses: softprops/action-gh-release@v2
         with:
