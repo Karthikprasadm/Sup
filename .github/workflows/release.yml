@@ -5,6 +5,11 @@ on:
     tags:
       - 'v*'
 
+permissions:
+  contents: write
+  # id-token is optional; enable if you later switch to PyPI Trusted Publishing
+  id-token: write
+
 jobs:
   pypi:
     runs-on: ubuntu-latest
