@@ -27,7 +27,7 @@ jobs:
       - name: Check artifacts and generate SBOM & checksums
         run: |
           twine check sup-lang/dist/*
-          cyclonedx-py env -o sbom.json
+          cyclonedx-py environment -o sbom.json
           sha256sum sup-lang/dist/* > SHA256SUMS
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
