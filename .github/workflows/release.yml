@@ -19,7 +19,7 @@ jobs:
         run: |
           echo "SOURCE_DATE_EPOCH=$(git log -1 --pretty=%ct)" >> $GITHUB_ENV
           python -m pip install -U pip
-          python -m pip install build==1.2.1 wheel==0.44.0 twine==5.1.1 cyclonedx-bom==4.4.0
+          python -m pip install build==1.2.1 wheel==0.44.0 twine==5.1.1 cyclonedx-bom==4.4.0 hatchling==1.25.0
       - name: Build package
         working-directory: sup-lang
         run: |
