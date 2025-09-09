@@ -8,10 +8,12 @@ def to_python(program: AST.Program) -> str:
     return emitter.emit_program(program)
 
 
-def to_python_with_map(program: AST.Program) -> tuple[str, list[int | None]]:
+def to_python_with_map(
+    program: AST.Program,
+) -> tuple[str, list[int | None], list[int | None]]:
     emitter = _PythonEmitter()
     code = emitter.emit_program(program)
-    return code, emitter.src_lines
+    return code, emitter.src_lines, emitter.src_cols
 
 
 class _PythonEmitter:
@@ -20,11 +22,14 @@ class _PythonEmitter:
         self.indent = 0
         self.in_function = 0
         self.src_lines: list[int | None] = []
+        self.src_cols: list[int | None] = []
         self._current_src_line: int | None = None
+        self._current_src_col: int | None = None
 
     def w(self, line: str = "") -> None:
         self.lines.append("    " * self.indent + line)
         self.src_lines.append(self._current_src_line)
+        self.src_cols.append(self._current_src_col)
 
     def emit_program(self, program: AST.Program) -> str:
         self.w("# Transpiled from sup")
@@ -68,6 +73,7 @@ class _PythonEmitter:
         for stmt in program.statements:
             if not isinstance(stmt, AST.FunctionDef):
                 self._current_src_line = getattr(stmt, "line", None)
+                self._current_src_col = getattr(stmt, "column", None)
                 self.emit_stmt(stmt)
         self.indent -= 1
         self.w()
@@ -81,12 +87,14 @@ class _PythonEmitter:
     def emit_function(self, fn: AST.FunctionDef) -> None:
         params = ", ".join(fn.params)
         self._current_src_line = getattr(fn, "line", None)
+        self._current_src_col = getattr(fn, "column", None)
         self.w(f"def {fn.name}({params}):")
         self.indent += 1
         self.w("global last_result")
         self.in_function += 1
         for s in fn.body:
             self._current_src_line = getattr(s, "line", None)
+            self._current_src_col = getattr(s, "column", None)
             self.emit_stmt(s)
         self.in_function -= 1
         self.indent -= 1
@@ -110,6 +118,7 @@ class _PythonEmitter:
             self.indent += 1
             for s in node.body:
                 self._current_src_line = getattr(s, "line", None)
+                self._current_src_col = getattr(s, "column", None)
                 self.emit_stmt(s)
             self.indent -= 1
             if node.else_body is not None:
@@ -117,6 +126,7 @@ class _PythonEmitter:
                 self.indent += 1
                 for s in node.else_body:
                     self._current_src_line = getattr(s, "line", None)
+                    self._current_src_col = getattr(s, "column", None)
                     self.emit_stmt(s)
                 self.indent -= 1
             return
@@ -125,6 +135,7 @@ class _PythonEmitter:
             self.indent += 1
             for s in node.body:
                 self._current_src_line = getattr(s, "line", None)
+                self._current_src_col = getattr(s, "column", None)
                 self.emit_stmt(s)
             self.indent -= 1
             return
@@ -133,6 +144,7 @@ class _PythonEmitter:
             self.indent += 1
             for s in node.body:
                 self._current_src_line = getattr(s, "line", None)
+                self._current_src_col = getattr(s, "column", None)
                 self.emit_stmt(s)
             self.indent -= 1
             return
@@ -141,6 +153,7 @@ class _PythonEmitter:
             self.indent += 1
             for s in node.body:
                 self._current_src_line = getattr(s, "line", None)
+                self._current_src_col = getattr(s, "column", None)
                 self.emit_stmt(s)
             self.indent -= 1
             return
@@ -269,14 +282,29 @@ def _encode_vlq(value: int) -> str:
     return out
 
 
-def build_sourcemap_mappings(gen_src_lines: list[int | None]) -> str:
+def build_sourcemap_mappings(
+    gen_src_lines: list[int | None], gen_src_cols: list[int | None]
+) -> str:
+    # Standard V3: each segment = [generatedColumn, sourceIndex, originalLine, originalColumn]
     mappings: list[str] = []
+    last_gen_col = 0
+    last_src_idx = 0
     last_orig_line = 0
-    for src_line in gen_src_lines:
+    last_orig_col = 0
+    for src_line, src_col in zip(gen_src_lines, gen_src_cols):
         if src_line is None:
             mappings.append("")
+            last_gen_col = 0
             continue
-        seg = f"{_encode_vlq(0)}{_encode_vlq(0)}{_encode_vlq(max(0, src_line - 1 - last_orig_line))}{_encode_vlq(0)}"
+        seg = (
+            f"{_encode_vlq(0 - last_gen_col)}"  # reset to start of line
+            f"{_encode_vlq(0 - last_src_idx)}"  # single source
+            f"{_encode_vlq(max(0, (src_line - 1) - last_orig_line))}"
+            f"{_encode_vlq(max(0, (src_col or 0) - last_orig_col))}"
+        )
         mappings.append(seg)
+        last_gen_col = 0
+        last_src_idx = 0
         last_orig_line = src_line - 1
+        last_orig_col = src_col or 0
     return ";".join(mappings)

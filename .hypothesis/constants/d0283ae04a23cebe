@@ -1,0 +1,4 @@
+# file: D:\sup2\sup-lang\sup\optimizer.py
+# hypothesis_version: 6.138.8
+
+[0.0, 1.0, '!=', '*', '+', '-', '/', '<', '<=', '==', '>', '>=', 'bin', 'body', 'bool', 'builtin', 'cmp', 'else_body', 'expr', 'getkey', 'id', 'key', 'left', 'len', 'list', 'not', 'num', 'other', 'right', 'str', 'target']

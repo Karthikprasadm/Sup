@@ -22,13 +22,13 @@ from .exceptions import (ChunkedEncodingError, ContentDecodingError,
                          InvalidSchema, TooManyRedirects)
 from .hooks import default_hooks, dispatch_hook
 # formerly defined here, reexposed here for backward compatibility
-from .models import (DEFAULT_REDIRECT_LIMIT, REDIRECT_STATI,  # noqa: F401
-                     PreparedRequest, Request)
+from .models import REDIRECT_STATI  # noqa: F401
+from .models import DEFAULT_REDIRECT_LIMIT, PreparedRequest, Request
 from .status_codes import codes
 from .structures import CaseInsensitiveDict
-from .utils import (DEFAULT_PORTS, default_headers,  # noqa: F401
-                    get_auth_from_url, get_environ_proxies, get_netrc_auth,
-                    requote_uri, resolve_proxies, rewind_body,
+from .utils import default_headers  # noqa: F401
+from .utils import (DEFAULT_PORTS, get_auth_from_url, get_environ_proxies,
+                    get_netrc_auth, requote_uri, resolve_proxies, rewind_body,
                     should_bypass_proxies, to_key_val_list)
 
 # Preferred clock, based on which one is more accurate on a given system.

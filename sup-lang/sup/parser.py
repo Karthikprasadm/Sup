@@ -228,6 +228,14 @@ class Lexer:
             "regex_match": ("REGEX_MATCH", None),
             "regex_search": ("REGEX_SEARCH", None),
             "regex_replace": ("REGEX_REPLACE", None),
+            # subprocess/csv/zip/sqlite
+            "subprocess_run": ("SUBPROCESS_RUN", None),
+            "csv_read": ("CSV_READ", None),
+            "csv_write": ("CSV_WRITE", None),
+            "zip_create": ("ZIP_CREATE", None),
+            "zip_extract": ("ZIP_EXTRACT", None),
+            "sqlite_exec": ("SQLITE_EXEC", None),
+            "sqlite_query": ("SQLITE_QUERY", None),
             "define": ("DEFINE", None),
             "function": ("FUNCTION", None),
             "called": ("CALLED", None),
@@ -718,6 +726,13 @@ class Parser:
             "REGEX_MATCH",
             "REGEX_SEARCH",
             "REGEX_REPLACE",
+            "SUBPROCESS_RUN",
+            "CSV_READ",
+            "CSV_WRITE",
+            "ZIP_CREATE",
+            "ZIP_EXTRACT",
+            "SQLITE_EXEC",
+            "SQLITE_QUERY",
         }:
             return self.collection_or_builtin()
         return self.value()
@@ -737,12 +752,13 @@ class Parser:
     def make_expr(self) -> AST.Node:
         start = self.expect("MAKE", "Expected 'make'.")
         if self.match("LIST"):
-            self.expect("OF", "Expected 'of' after 'make list'.")
             items: list[AST.Node] = []
-            # parse comma-separated values
-            items.append(self.value())
-            while self.match("COMMA"):
+            if self.match("OF"):
+                # parse comma-separated values
                 items.append(self.value())
+                while self.match("COMMA"):
+                    items.append(self.value())
+            # else: allow empty list literal via just 'make list'
             node = AST.MakeList(items=items)
             node.line = start.line
             return node
@@ -823,9 +839,9 @@ class Parser:
         if tok.type == "CONCAT":
             start = self.advance()
             self.expect("OF", "Expected 'of' after 'concat'.")
-            a = self.value()
+            a = self.expression()
             self.expect("AND", "Expected 'and' in concat.")
-            b = self.value()
+            b = self.expression()
             node = AST.BuiltinCall(name="concat", args=[a, b])
             node.line = start.line
             return node
@@ -833,9 +849,9 @@ class Parser:
         if tok.type in {"POWER", "MIN", "MAX", "CONTAINS"}:
             start = self.advance()
             self.expect("OF", f"Expected 'of' after '{tok.type.lower()}'.")
-            a = self.value()
+            a = self.expression()
             self.expect("AND", "Expected 'and' in binary builtin.")
-            b = self.value()
+            b = self.expression()
             name = (
                 "power"
                 if tok.type == "POWER"
@@ -875,7 +891,9 @@ class Parser:
             return node
         if tok.type == "WRITE_FILE":
             start = self.advance()
-            self.expect("OF", "Expected 'of' after 'write file'.")
+            # Support both 'write file of <path> and <data>' and 'write file <path> and <data>'
+            if self.peek().type == "OF":
+                self.advance()
             path = self.value()
             self.expect("AND", "Expected 'and' in write file.")
             data = self.value()
@@ -925,7 +943,7 @@ class Parser:
         if tok.type == "EXISTS":
             start = self.advance()
             self.expect("OF", "Expected 'of' after 'exists'.")
-            p = self.value()
+            p = self.expression()
             node = AST.BuiltinCall(name="exists", args=[p])
             node.line = start.line
             return node
@@ -939,12 +957,80 @@ class Parser:
         if tok.type == "REGEX_REPLACE":
             start = self.advance()
             self.expect("OF", "Expected 'of' after 'regex replace'.")
-            pat = self.value()
+            pat = self.expression()
             self.expect("AND", "Expected 'and' in regex replace.")
-            text = self.value()
+            text = self.expression()
             self.expect("AND", "Expected second 'and' in regex replace.")
-            repl = self.value()
+            repl = self.expression()
             node = AST.BuiltinCall(name="regex_replace", args=[pat, text, repl])
+            node.line = start.line
+            return node
+        if tok.type == "SUBPROCESS_RUN":
+            start = self.advance()
+            self.expect("OF", "Expected 'of' after 'subprocess run'.")
+            cmd = self.value()
+            args = [cmd]
+            if self.match("AND"):
+                args.append(self.value())
+            node = AST.BuiltinCall(name="subprocess_run", args=args)
+            node.line = start.line
+            return node
+        if tok.type == "CSV_READ":
+            start = self.advance()
+            self.expect("OF", "Expected 'of' after 'csv read'.")
+            p = self.expression()
+            node = AST.BuiltinCall(name="csv_read", args=[p])
+            node.line = start.line
+            return node
+        if tok.type == "CSV_WRITE":
+            start = self.advance()
+            self.expect("OF", "Expected 'of' after 'csv write'.")
+            p = self.expression()
+            self.expect("AND", "Expected 'and' in csv write.")
+            rows = self.expression()
+            node = AST.BuiltinCall(name="csv_write", args=[p, rows])
+            node.line = start.line
+            return node
+        if tok.type == "ZIP_CREATE":
+            start = self.advance()
+            self.expect("OF", "Expected 'of' after 'zip create'.")
+            zp = self.expression()
+            self.expect("AND", "Expected 'and' in zip create.")
+            files = self.expression()
+            node = AST.BuiltinCall(name="zip_create", args=[zp, files])
+            node.line = start.line
+            return node
+        if tok.type == "ZIP_EXTRACT":
+            start = self.advance()
+            self.expect("OF", "Expected 'of' after 'zip extract'.")
+            zp = self.value()
+            self.expect("AND", "Expected 'and' in zip extract.")
+            out = self.value()
+            node = AST.BuiltinCall(name="zip_extract", args=[zp, out])
+            node.line = start.line
+            return node
+        if tok.type == "SQLITE_EXEC":
+            start = self.advance()
+            self.expect("OF", "Expected 'of' after 'sqlite exec'.")
+            db = self.value()
+            self.expect("AND", "Expected 'and' in sqlite exec.")
+            sql = self.value()
+            args = [db, sql]
+            if self.match("AND"):
+                args.append(self.expression())
+            node = AST.BuiltinCall(name="sqlite_exec", args=args)
+            node.line = start.line
+            return node
+        if tok.type == "SQLITE_QUERY":
+            start = self.advance()
+            self.expect("OF", "Expected 'of' after 'sqlite query'.")
+            db = self.value()
+            self.expect("AND", "Expected 'and' in sqlite query.")
+            sql = self.value()
+            args = [db, sql]
+            if self.match("AND"):
+                args.append(self.expression())
+            node = AST.BuiltinCall(name="sqlite_query", args=args)
             node.line = start.line
             return node
         # No more builtins

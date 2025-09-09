@@ -1,0 +1,4 @@
+# file: D:\sup2\sup-lang\sup\transpiler.py
+# hypothesis_version: 6.138.8
+
+[', ', ';', '__main__()', '_e', 'abs', 'and', 'body', 'column', 'concat', 'def __main__():', 'else:', 'else_body', 'finally:', 'global last_result', 'last_result = None', 'line', 'lower', 'or', 'power', 'print(last_result)', 'return None', 'sqrt', 'statements', 'try:', 'upper', '{}']

@@ -6,6 +6,7 @@ from dataclasses import dataclass
 # AST Node base
 class Node:
     line: int | None = None
+    column: int | None = None
 
 
 @dataclass

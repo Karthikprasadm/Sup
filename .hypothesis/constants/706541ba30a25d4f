@@ -1,0 +1,4 @@
+# file: D:\sup2\sup-lang\sup\optimizer.py
+# hypothesis_version: 6.138.8
+
+[0.0, 1.0, 1000.0, '!=', '*', '+', '-', '/', '<', '<=', '==', '>', '>=', 'args', 'bin', 'body', 'bool', 'builtin', 'cmp', 'const_fold', 'const_fold.fn', 'copy_prop', 'copy_prop.fn', 'cse', 'cse.fn', 'dce_pure', 'dead_branch', 'else_body', 'expr', 'getkey', 'id', 'inline', 'items', 'jump_thread', 'key', 'left', 'len', 'list', 'name', 'not', 'num', 'other', 'right', 'str', 'target', 'value']

@@ -15,17 +15,44 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+      - name: Pin build tools and set SOURCE_DATE_EPOCH
+        run: |
+          echo "SOURCE_DATE_EPOCH=$(git log -1 --pretty=%ct)" >> $GITHUB_ENV
+          python -m pip install -U pip
+          python -m pip install build==1.2.1 wheel==0.44.0 twine==5.1.1 cyclonedx-bom==4.4.0
       - name: Build package
         working-directory: sup-lang
         run: |
-          python -m pip install -U pip build
-          python -m build
+          python -m build --no-isolation
+      - name: Check artifacts and generate SBOM & checksums
+        run: |
+          twine check sup-lang/dist/*
+          cyclonedx-py env -o sbom.json
+          sha256sum sup-lang/dist/* > SHA256SUMS
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           password: ${{ secrets.PYPI_API_TOKEN }}
           packages-dir: sup-lang/dist
           skip-existing: true
+      - name: Sign artifacts
+        if: ${{ secrets.GPG_PRIVATE_KEY && secrets.GPG_PASSPHRASE }}
+        env:
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+        run: |
+          echo "$GPG_PRIVATE_KEY" | gpg --batch --import
+          for f in sup-lang/dist/*; do gpg --batch --yes --pinentry-mode loopback --passphrase "$GPG_PASSPHRASE" --detach-sign --armor "$f"; done
+      - name: Upload release artifacts
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            sup-lang/dist/*
+            sup-lang/dist/*.asc
+            SHA256SUMS
+            sbom.json
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   vsix:
     runs-on: ubuntu-latest

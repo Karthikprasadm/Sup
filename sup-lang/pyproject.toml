@@ -1,10 +1,10 @@
-[build-system]
+﻿[build-system]
 requires = ["hatchling>=1.18.0"]
 build-backend = "hatchling.build"
 
 [project]
 name = "sup-lang"
-version = "2.3.3"
+version = "2.3.5"
 description = "Sup: an English-like programming language (MVP)"
 readme = "README.md"
 requires-python = ">=3.9"

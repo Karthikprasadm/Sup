@@ -1,0 +1,4 @@
+# file: D:\sup2\sup-lang\sup\typecheck.py
+# hypothesis_version: 6.138.8
+
+['*', '+', '-', '/', 'TC001', 'TC002', 'abs', 'bool', 'ceil', 'concat', 'contains', 'floor', 'json_stringify', 'length', 'line', 'list', 'lower', 'map', 'max', 'min', 'number', 'power', 'read_file', 'sqrt', 'string', 'trim', 'unknown', 'upper']

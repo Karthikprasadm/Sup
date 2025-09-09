@@ -25,3 +25,6 @@ build/
 dist/
 __pycache__/
 .pytest_cache/
+out.py
+tmp/
+tmp/

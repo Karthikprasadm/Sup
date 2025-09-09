@@ -8,7 +8,7 @@ import sys
 from . import __version__
 from .errors import SupError
 from .interpreter import Interpreter
-from .optimizer import optimize
+from .optimizer import optimize_ex
 from .parser import AST  # type: ignore
 from .parser import Parser
 from .transpiler import build_sourcemap_mappings, to_python, to_python_with_map
@@ -146,12 +146,12 @@ def transpile_project(entry_file: str, out_dir: str) -> None:
         module_name = os.path.splitext(os.path.basename(path))[0]
         py_module = sanitize_module(module_name)
         py_path = os.path.join(out_dir, f"{py_module}.py")
-        py_code, src_lines = to_python_with_map(program)
+        py_code, src_lines, src_cols = to_python_with_map(program)
         with open(py_path, "w", encoding="utf-8") as f:
             f.write(py_code)
         # Write a sourcemap using the per-line source mapping captured by the emitter
         try:
-            mappings = build_sourcemap_mappings(src_lines)
+            mappings = build_sourcemap_mappings(src_lines, src_cols)
             sm = {
                 "version": 3,
                 "file": os.path.basename(py_path),
@@ -371,6 +371,21 @@ bye
         "--opt", action="store_true", help="Run optimizer on AST before execution"
     )
     parser.add_argument("--version", action="store_true", help="Print version and exit")
+    parser.add_argument(
+        "--opt-passes",
+        help=(
+            "Comma-separated passes to run: const_fold,dead_branch,copy_prop,cse,inline,dce_pure,jump_thread"
+        ),
+    )
+    parser.add_argument(
+        "--opt-dump",
+        help="Path to write optimized AST (use '-' for stdout)",
+    )
+    parser.add_argument(
+        "--opt-timings",
+        action="store_true",
+        help="Print per-pass timings (ms)",
+    )
     args = parser.parse_args(argv)
 
     if args.version:
@@ -385,7 +400,7 @@ bye
                 if args.emit == "python":
 
                     program = Parser().parse(src)
-                    py_code, src_lines = to_python_with_map(program)
+                    py_code, src_lines, _src_cols = to_python_with_map(program)
                     sys.stdout.write(py_code)
                     # also write a .map next to stdout? Skip for stdout mode
                     return 0
@@ -403,7 +418,36 @@ bye
             parser2 = Parser()
             program = parser2.parse(src)
             if args.opt:
-                program = optimize(program)
+                passes = None
+                if args.opt_passes:
+                    passes = [
+                        p.strip() for p in args.opt_passes.split(",") if p.strip()
+                    ]
+                dump_file = None
+                dump_stream = None
+                if args.opt_dump:
+                    dump_file = args.opt_dump
+                    if dump_file == "-":
+                        dump_stream = sys.stdout
+                    else:
+                        try:
+                            dump_stream = open(dump_file, "w", encoding="utf-8")
+                        except Exception:
+                            dump_stream = None
+                program, timings = optimize_ex(
+                    program,
+                    enabled_passes=passes,
+                    collect_timings=args.opt_timings,
+                    dump_stream=dump_stream,
+                )
+                if dump_stream is not None and dump_stream is not sys.stdout:
+                    try:
+                        dump_stream.close()  # type: ignore[call-arg]
+                    except Exception:
+                        pass
+                if args.opt_timings and timings:
+                    for k in sorted(timings.keys()):
+                        print(f"opt[{k}]: {timings[k]:.3f} ms", file=sys.stderr)
             interp = Interpreter()
             out = interp.run(program)
             if out:
