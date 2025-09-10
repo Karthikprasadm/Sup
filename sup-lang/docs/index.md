@@ -12,7 +12,35 @@ Sup is an English-like programming language with deterministic semantics and hum
 
 Get started:
 ```
-sup examples/06_mixed.sup
+sup sup-lang/examples/06_mixed.sup
 ```
 
+Safe mode & capabilities
+------------------------
+
+By default, the interpreter blocks potentially dangerous operations. Enable what you need via `SUP_CAPS` (comma-separated), or disable gating with `SUP_UNSAFE=1`.
+
+- Capabilities: `net`, `process`, `fs_write`, `archive`, `sql`
+
+Example (PowerShell):
+```
+$env:SUP_CAPS = "fs_write,net"
+```
+
+Dev workflow
+------------
+
+```
+pip install -e ./sup-lang pytest ruff mypy
+ruff check sup-lang/sup --fix
+mypy --config-file sup-lang/mypy.ini sup-lang/sup
+pytest -q sup-lang
+```
+
+
+See also
+--------
+
+- Language specification (v1.0): `spec.md`
+- Versioning and stability policy: `versioning.md`
 

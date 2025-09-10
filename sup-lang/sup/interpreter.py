@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass, field
+from typing import Any
 
 from . import ast as AST
 from .errors import SupRuntimeError
@@ -37,9 +38,21 @@ class Interpreter:
         self.last_result: object | None = None
         self.io = IOHooks()
         # Lazy helpers for logging/async tasks
-        self._logger = None  # type: ignore[assignment]
-        self._executor = None  # type: ignore[assignment]
+        self._logger: Any = None
+        self._executor: Any = None
         self._futures: dict[int, object] = {}
+        # Capability model (safe-by-default). Categories: net, process, fs_write, archive, sql
+        # Allow override via env SUP_UNSAFE=1 (disable gating) or SUP_CAPS=comma,separated,list
+        import os as _os_caps  # local import to avoid global side effects
+
+        self._unsafe_all = _os_caps.environ.get("SUP_UNSAFE") in {"1", "true", "yes"}
+        caps_env = _os_caps.environ.get("SUP_CAPS", "")
+        self.capabilities: set[str] = (
+            {c.strip() for c in caps_env.split(",") if c.strip()} if caps_env else set()
+        )
+        # HTTP defaults
+        self._http_timeout_sec: float = 10.0
+        self._http_max_bytes: int = 1_000_000
 
     def run(self, program: AST.Program, *, stdin: str | None = None) -> str:
         self.io.stdin = stdin
@@ -82,7 +95,7 @@ class Interpreter:
         if isinstance(node, AST.ForEach):
             iterable = self.eval(node.iterable)
             try:
-                iterator = list(iterable)  # type: ignore[arg-type]
+                iterator = list(iterable)  # type: ignore[arg-type,call-overload]
             except Exception:
                 raise SupRuntimeError(message="Target of for each is not iterable.")
             saved = self.env.get(node.var.lower())
@@ -100,7 +113,7 @@ class Interpreter:
         if isinstance(node, AST.Repeat):
             count_val = self.eval(node.count_expr)
             try:
-                iterations = int(count_val)  # type: ignore[arg-type]
+                iterations = int(count_val)  # type: ignore[arg-type,call-overload]
             except Exception:
                 raise SupRuntimeError(
                     message="Repeat count must be a number.",
@@ -203,7 +216,7 @@ class Interpreter:
                 self.last_result = val
                 return val
             if isinstance(target, dict):
-                val = target.get(key)
+                val = target.get(key)  # type: ignore[call-arg]
                 self.last_result = val
                 return val
             raise SupRuntimeError(message="Get target must be a list or map.")
@@ -339,9 +352,9 @@ class Interpreter:
             import os as _os
 
             key = str(self.eval(node.args[0]))
-            res = _os.environ.get(key, "")
-            self.last_result = res
-            return res
+            out_env = _os.environ.get(key, "")
+            self.last_result = out_env
+            return out_env
         if name == "env_set":
             import os as _os
 
@@ -353,46 +366,47 @@ class Interpreter:
         if name == "cwd":
             import os as _os
 
-            res = _os.getcwd()
-            self.last_result = res
-            return res
+            out_cwd = _os.getcwd()
+            self.last_result = out_cwd
+            return out_cwd
         if name == "exists":
             import os as _os
 
             path = str(self.eval(node.args[0]))
-            res = _os.path.exists(path)
-            self.last_result = res
-            return res
+            ok_exists = _os.path.exists(path)
+            self.last_result = ok_exists
+            return ok_exists
         if name == "glob":
             import glob as _glob
 
             pattern = str(self.eval(node.args[0]))
-            res = list(_glob.glob(pattern))
-            self.last_result = res
-            return res
+            matches = list(_glob.glob(pattern))
+            self.last_result = matches
+            return matches
         if name == "join_path":
             import os as _os
 
             a = str(self.eval(node.args[0]))
             b = str(self.eval(node.args[1]))
-            res = _os.path.join(a, b)
-            self.last_result = res
-            return res
+            joined_path = _os.path.join(a, b)
+            self.last_result = joined_path
+            return joined_path
         if name == "dirname":
             import os as _os
 
             p = str(self.eval(node.args[0]))
-            res = _os.path.dirname(p)
-            self.last_result = res
-            return res
+            out_dirname = _os.path.dirname(p)
+            self.last_result = out_dirname
+            return out_dirname
         if name == "basename":
             import os as _os
 
             p = str(self.eval(node.args[0]))
-            res = _os.path.basename(p)
-            self.last_result = res
-            return res
+            out_basename = _os.path.basename(p)
+            self.last_result = out_basename
+            return out_basename
         if name == "copy_file":
+            self._require_cap("fs_write")
             import shutil as _sh
 
             src = str(self.eval(node.args[0]))
@@ -401,6 +415,7 @@ class Interpreter:
             self.last_result = True
             return True
         if name == "move_file":
+            self._require_cap("fs_write")
             import shutil as _sh
 
             src = str(self.eval(node.args[0]))
@@ -409,6 +424,7 @@ class Interpreter:
             self.last_result = True
             return True
         if name == "remove_file":
+            self._require_cap("fs_write")
             import os as _os
 
             p = str(self.eval(node.args[0]))
@@ -419,6 +435,7 @@ class Interpreter:
             self.last_result = True
             return True
         if name == "makedirs":
+            self._require_cap("fs_write")
             import os as _os
 
             p = str(self.eval(node.args[0]))
@@ -426,6 +443,7 @@ class Interpreter:
             self.last_result = True
             return True
         if name == "subprocess_run":
+            self._require_cap("process")
             import subprocess as _sp
 
             cmd = str(self.eval(node.args[0]))
@@ -438,52 +456,64 @@ class Interpreter:
             cp = _sp.run(
                 cmd, shell=True, capture_output=True, text=True, timeout=timeout
             )
-            res = {"code": int(cp.returncode), "out": cp.stdout, "err": cp.stderr}
+            res: dict[str, str | int] = {
+                "code": int(cp.returncode),
+                "out": cp.stdout,
+                "err": cp.stderr,
+            }
             self.last_result = res
             return res
 
         # HTTP / URL / querystring
         if name == "http_get":
+            self._require_cap("net")
             import urllib.request as _u
 
             url = str(self.eval(node.args[0]))
-            headers = {}
-            if len(node.args) > 1 and isinstance(self.eval(node.args[1]), dict):
-                headers = dict(self.eval(node.args[1]))  # type: ignore[arg-type]
+            headers: dict[str, str] = {}
+            if len(node.args) > 1:
+                hdrs_obj = self.eval(node.args[1])
+                if isinstance(hdrs_obj, dict):
+                    headers = {str(k): str(v) for k, v in hdrs_obj.items()}
             req = _u.Request(url, headers=headers)
-            with _u.urlopen(req) as r:
-                data = r.read().decode("utf-8", "replace")
+            with _u.urlopen(req, timeout=self._http_timeout_sec) as r:
+                data = r.read(self._http_max_bytes).decode("utf-8", "replace")
             self.last_result = data
             return data
         if name == "http_post":
+            self._require_cap("net")
             import urllib.request as _u
 
             url = str(self.eval(node.args[0]))
             body = str(self.eval(node.args[1]))
-            headers = {"Content-Type": "text/plain; charset=utf-8"}
-            if len(node.args) > 2 and isinstance(self.eval(node.args[2]), dict):
-                headers.update(dict(self.eval(node.args[2])))  # type: ignore[arg-type]
+            headers_post: dict[str, str] = {"Content-Type": "text/plain; charset=utf-8"}
+            if len(node.args) > 2:
+                hdrs_obj = self.eval(node.args[2])
+                if isinstance(hdrs_obj, dict):
+                    headers_post.update({str(k): str(v) for k, v in hdrs_obj.items()})
             req = _u.Request(
-                url, data=body.encode("utf-8"), headers=headers, method="POST"
+                url, data=body.encode("utf-8"), headers=headers_post, method="POST"
             )
-            with _u.urlopen(req) as r:
-                data = r.read().decode("utf-8", "replace")
+            with _u.urlopen(req, timeout=self._http_timeout_sec) as r:
+                data = r.read(self._http_max_bytes).decode("utf-8", "replace")
             self.last_result = data
             return data
         if name == "http_json":
+            self._require_cap("net")
             import json as _json
 
             fake = AST.BuiltinCall("http_get", [node.args[0]])
             text = str(self._eval_builtin(fake))
-            res = _json.loads(text)
-            self.last_result = res
-            return res
+            obj_json = _json.loads(text)
+            self.last_result = obj_json
+            return obj_json
         if name == "http_status":
+            self._require_cap("net")
             import urllib.request as _u
 
             url = str(self.eval(node.args[0]))
             req = _u.Request(url)
-            with _u.urlopen(req) as r:
+            with _u.urlopen(req, timeout=self._http_timeout_sec) as r:
                 code = int(r.getcode())
             self.last_result = float(code)
             return float(code)
@@ -492,15 +522,15 @@ class Interpreter:
 
             u = str(self.eval(node.args[0]))
             pr = _p.urlparse(u)
-            res = {
+            res_url: dict[str, str] = {
                 "scheme": pr.scheme,
                 "host": pr.netloc,
                 "path": pr.path,
                 "query": pr.query,
                 "fragment": pr.fragment,
             }
-            self.last_result = res
-            return res
+            self.last_result = res_url
+            return res_url
         if name == "url_encode":
             import urllib.parse as _p
 
@@ -529,66 +559,66 @@ class Interpreter:
 
             s = str(self.eval(node.args[0]))
             pairs = _p.parse_qsl(s, keep_blank_values=True)
-            res: dict[str, str] = {}
+            qs_map: dict[str, str] = {}
             for k, v in pairs:
-                res[str(k)] = str(v)
-            self.last_result = res
-            return res
+                qs_map[str(k)] = str(v)
+            self.last_result = qs_map
+            return qs_map
 
         # Crypto / base64 / randomness
         if name == "sha256":
             import hashlib as _hh
 
             s = str(self.eval(node.args[0]))
-            res = _hh.sha256(s.encode("utf-8")).hexdigest()
-            self.last_result = res
-            return res
+            hexout = _hh.sha256(s.encode("utf-8")).hexdigest()
+            self.last_result = hexout
+            return hexout
         if name == "sha1":
             import hashlib as _hh
 
             s = str(self.eval(node.args[0]))
-            res = _hh.sha1(s.encode("utf-8")).hexdigest()
-            self.last_result = res
-            return res
+            hexout = _hh.sha1(s.encode("utf-8")).hexdigest()
+            self.last_result = hexout
+            return hexout
         if name == "md5":
             import hashlib as _hh
 
             s = str(self.eval(node.args[0]))
-            res = _hh.md5(s.encode("utf-8")).hexdigest()
-            self.last_result = res
-            return res
+            hexout = _hh.md5(s.encode("utf-8")).hexdigest()
+            self.last_result = hexout
+            return hexout
         if name == "hmac_sha256":
             import hashlib as _hh
             import hmac as _hmac
 
             key = str(self.eval(node.args[0])).encode("utf-8")
             msg = str(self.eval(node.args[1])).encode("utf-8")
-            res = _hmac.new(key, msg, _hh.sha256).hexdigest()
-            self.last_result = res
-            return res
+            hmac_hex = _hmac.new(key, msg, _hh.sha256).hexdigest()
+            self.last_result = hmac_hex
+            return hmac_hex
         if name == "random_bytes":
             import base64 as _b64
             import secrets as _secrets
 
             n = int(self._num(self.eval(node.args[0]))) if len(node.args) > 0 else 16
             data = _secrets.token_bytes(max(1, n))
-            res = _b64.b64encode(data).decode("ascii")
-            self.last_result = res
-            return res
+            b64 = _b64.b64encode(data).decode("ascii")
+            self.last_result = b64
+            return b64
         if name == "base64_encode":
             import base64 as _b64
 
-            s = str(self.eval(node.args[0])).encode("utf-8")
-            res = _b64.b64encode(s).decode("ascii")
-            self.last_result = res
-            return res
+            s_bytes = str(self.eval(node.args[0])).encode("utf-8")
+            b64 = _b64.b64encode(s_bytes).decode("ascii")
+            self.last_result = b64
+            return b64
         if name == "base64_decode":
             import base64 as _b64
 
             s = str(self.eval(node.args[0]))
-            res = _b64.b64decode(s).decode("utf-8", "replace")
-            self.last_result = res
-            return res
+            decoded = _b64.b64decode(s).decode("utf-8", "replace")
+            self.last_result = decoded
+            return decoded
 
         # Regex
         if name == "regex_match":
@@ -596,17 +626,17 @@ class Interpreter:
 
             pat = str(self.eval(node.args[0]))
             text = str(self.eval(node.args[1]))
-            res = _re.search(pat, text) is not None
-            self.last_result = res
-            return res
+            ok = _re.search(pat, text) is not None
+            self.last_result = ok
+            return ok
         if name == "regex_findall":
             import re as _re
 
             pat = str(self.eval(node.args[0]))
             text = str(self.eval(node.args[1]))
-            res = list(_re.findall(pat, text))
-            self.last_result = res
-            return res
+            all_matches = list(_re.findall(pat, text))
+            self.last_result = all_matches
+            return all_matches
         if name == "regex_replace":
             import re as _re
 
@@ -614,9 +644,9 @@ class Interpreter:
             pat = str(self.eval(node.args[0]))
             text = str(self.eval(node.args[1]))
             repl = str(self.eval(node.args[2]))
-            res = _re.sub(pat, repl, text)
-            self.last_result = res
-            return res
+            replaced = _re.sub(pat, repl, text)
+            self.last_result = replaced
+            return replaced
 
         # Logging
         if name == "set_log_level":
@@ -634,15 +664,15 @@ class Interpreter:
 
             if self._logger is None:
                 self._logger = _log.getLogger("sup")
-            msg = str(self.eval(node.args[0])) if len(node.args) > 0 else ""
+            msg_txt = str(self.eval(node.args[0])) if len(node.args) > 0 else ""
             if name == "log_debug":
-                self._logger.debug(msg)
+                self._logger.debug(msg_txt)
             elif name == "log_info":
-                self._logger.info(msg)
+                self._logger.info(msg_txt)
             elif name == "log_warn":
-                self._logger.warning(msg)
+                self._logger.warning(msg_txt)
             else:
-                self._logger.error(msg)
+                self._logger.error(msg_txt)
             self.last_result = True
             return True
 
@@ -650,28 +680,28 @@ class Interpreter:
         if name == "args":
             import sys as _sys
 
-            res = list(_sys.argv[1:])
-            self.last_result = res
-            return res
+            argv_list = list(_sys.argv[1:])
+            self.last_result = argv_list
+            return argv_list
         if name == "arg":
             import sys as _sys
 
             idx = int(self._num(self.eval(node.args[0])))
             vals = list(_sys.argv[1:])
-            res = vals[idx] if 0 <= idx < len(vals) else ""
-            self.last_result = res
-            return res
+            val = vals[idx] if 0 <= idx < len(vals) else ""
+            self.last_result = val
+            return val
         if name == "args_map":
             import sys as _sys
 
             vals = list(_sys.argv[1:])
-            m: dict[str, str] = {}
+            arg_map: dict[str, str] = {}
             for tok in vals:
                 if tok.startswith("--") and "=" in tok:
                     k, v = tok[2:].split("=", 1)
-                    m[k] = v
-            self.last_result = m
-            return m
+                    arg_map[k] = v
+            self.last_result = arg_map
+            return arg_map
 
         # CSV / XML / ZIP / SQLite
         if name == "csv_read":
@@ -685,6 +715,7 @@ class Interpreter:
             self.last_result = rows
             return rows
         if name == "csv_write":
+            self._require_cap("fs_write")
             import csv as _csv
 
             p = str(self.eval(node.args[0]))
@@ -704,25 +735,26 @@ class Interpreter:
             import xml.etree.ElementTree as _ET
 
             s = str(self.eval(node.args[0]))
-            res = _ET.fromstring(s)
-            self.last_result = res
-            return res
+            elem = _ET.fromstring(s)
+            self.last_result = elem
+            return elem
         if name == "xml_find":
             root = self.eval(node.args[0])
             path = str(self.eval(node.args[1]))
             if hasattr(root, "findall"):
-                res = list(root.findall(path))  # type: ignore[attr-defined]
+                elems = list(root.findall(path))  # type: ignore[attr-defined]
             else:
-                res = []
-            self.last_result = res
-            return res
+                elems = []
+            self.last_result = elems
+            return elems
         if name == "xml_text":
             el = self.eval(node.args[0])
             text = getattr(el, "text", None)
-            res = "" if text is None else str(text)
-            self.last_result = res
-            return res
+            txt = "" if text is None else str(text)
+            self.last_result = txt
+            return txt
         if name == "zip_create":
+            self._require_cap("archive")
             import zipfile as _zf
 
             zip_path = str(self.eval(node.args[0]))
@@ -735,6 +767,7 @@ class Interpreter:
             self.last_result = True
             return True
         if name == "zip_extract":
+            self._require_cap("archive")
             import zipfile as _zf
 
             zip_path = str(self.eval(node.args[0]))
@@ -744,6 +777,7 @@ class Interpreter:
             self.last_result = True
             return True
         if name == "sqlite_exec":
+            self._require_cap("sql")
             import sqlite3 as _sql
 
             db = str(self.eval(node.args[0]))
@@ -764,6 +798,7 @@ class Interpreter:
             self.last_result = float(lastrowid if lastrowid is not None else 0)
             return float(lastrowid if lastrowid is not None else 0)
         if name == "sqlite_query":
+            self._require_cap("sql")
             import sqlite3 as _sql
 
             db = str(self.eval(node.args[0]))
@@ -809,24 +844,25 @@ class Interpreter:
         if name == "await":
             fut = self.eval(node.args[0])
             try:
-                res = fut.result()  # type: ignore[attr-defined]
+                outv = fut.result()  # type: ignore[attr-defined]
             except Exception as e:
                 raise SupRuntimeError(message=str(e))
-            self.last_result = res
-            return res
+            self.last_result = outv
+            return outv
         if name == "now":
             import datetime as _dt
 
-            res = _dt.datetime.now().isoformat()
-            self.last_result = res
-            return res
+            now_s = _dt.datetime.now().isoformat()
+            self.last_result = now_s
+            return now_s
         if name == "read_file":
             path = str(self.eval(node.args[0]))
             with open(path, encoding="utf-8") as f:
-                res = f.read()
-            self.last_result = res
-            return res
+                content = f.read()
+            self.last_result = content
+            return content
         if name == "write_file":
+            self._require_cap("fs_write")
             path = str(self.eval(node.args[0]))
             data = str(self.eval(node.args[1]))
             with open(path, "w", encoding="utf-8") as f:
@@ -844,94 +880,94 @@ class Interpreter:
             import json as _json
 
             v = self.eval(node.args[0])
-            res = _json.dumps(v)
-            self.last_result = res
-            return res
+            jstr = _json.dumps(v)
+            self.last_result = jstr
+            return jstr
         if name == "min":
             a = self.eval(node.args[0])
             b = self.eval(node.args[1])
-            res = min(self._num(a), self._num(b))
-            self.last_result = float(res)
-            return float(res)
+            num = min(self._num(a), self._num(b))
+            self.last_result = float(num)
+            return float(num)
         if name == "max":
             a = self.eval(node.args[0])
             b = self.eval(node.args[1])
-            res = max(self._num(a), self._num(b))
-            self.last_result = float(res)
-            return float(res)
+            num = max(self._num(a), self._num(b))
+            self.last_result = float(num)
+            return float(num)
         if name == "floor":
             import math
 
             a = self._num(self.eval(node.args[0]))
-            res = math.floor(a)
-            self.last_result = float(res)
-            return float(res)
+            iv = math.floor(a)
+            self.last_result = float(iv)
+            return float(iv)
         if name == "ceil":
             import math
 
             a = self._num(self.eval(node.args[0]))
-            res = math.ceil(a)
-            self.last_result = float(res)
-            return float(res)
+            iv = math.ceil(a)
+            self.last_result = float(iv)
+            return float(iv)
         if name == "trim":
             s = str(self.eval(node.args[0]))
-            res = s.strip()
-            self.last_result = res
-            return res
+            out_str = s.strip()
+            self.last_result = out_str
+            return out_str
         if name == "contains":
             s = self.eval(node.args[0])
             sub = self.eval(node.args[1])
             if isinstance(s, list):
-                res = any(item == sub for item in s)
+                ok = any(item == sub for item in s)
             else:
-                res = str(sub) in str(s)
-            self.last_result = res
-            return res
+                ok = str(sub) in str(s)
+            self.last_result = ok
+            return ok
         if name == "join":
             sep = str(self.eval(node.args[0]))
             lst = self.eval(node.args[1])
             if not isinstance(lst, list):
                 raise SupRuntimeError(message="join expects a list.")
-            res = sep.join(str(x) for x in lst)
-            self.last_result = res
-            return res
+            joined = sep.join(str(x) for x in lst)
+            self.last_result = joined
+            return joined
         if name == "power":
             a = self._num(self.eval(node.args[0]))
             b = self._num(self.eval(node.args[1]))
-            res = float(a) ** float(b)
-            self.last_result = res
-            return res
+            num_res = float(a) ** float(b)
+            self.last_result = num_res
+            return num_res
         if name == "sqrt":
             import math
 
             a = self._num(self.eval(node.args[0]))
-            res = math.sqrt(float(a))
-            self.last_result = res
-            return res
+            num_res = math.sqrt(float(a))
+            self.last_result = num_res
+            return num_res
         if name == "abs":
             a = self.eval(node.args[0])
             if isinstance(a, (int, float)):
-                res = abs(a)
+                num_res = abs(a)
             else:
-                res = abs(self._num(a))
-            self.last_result = float(res)
-            return float(res)
+                num_res = abs(self._num(a))
+            self.last_result = float(num_res)
+            return float(num_res)
         if name == "upper":
             s = str(self.eval(node.args[0]))
-            res = s.upper()
-            self.last_result = res
-            return res
+            out_str = s.upper()
+            self.last_result = out_str
+            return out_str
         if name == "lower":
             s = str(self.eval(node.args[0]))
-            res = s.lower()
-            self.last_result = res
-            return res
+            out_str = s.lower()
+            self.last_result = out_str
+            return out_str
         if name == "concat":
             a = str(self.eval(node.args[0]))
             b = str(self.eval(node.args[1]))
-            res = a + b
-            self.last_result = res
-            return res
+            out_str = a + b
+            self.last_result = out_str
+            return out_str
         raise SupRuntimeError(message=f"Unknown builtin {name}.")
 
     def _call_function(self, node: AST.Call) -> object:
@@ -1052,6 +1088,16 @@ class Interpreter:
             ns[name] = fn
         self.module_cache[key] = ns
         return ns
+
+    # ---- Capability helpers ----
+    def _require_cap(self, cap: str) -> None:
+        if self._unsafe_all:
+            return
+        if cap in self.capabilities:
+            return
+        raise SupRuntimeError(
+            message=f"Operation requires capability '{cap}'. Enable via SUP_CAPS or SUP_UNSAFE."
+        )
 
 
 class _ReturnSignal(Exception):

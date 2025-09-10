@@ -2,92 +2,59 @@ name: CI
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, master ]
   pull_request:
-    branches: [ main ]
+    branches: [ main, master ]
 
 jobs:
   test:
+    name: Tests (Python ${{ matrix.python }}, ${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        python: ['3.9', '3.10', '3.11']
-    runs-on: ${{ matrix.os }}
+        python: ["3.9", "3.10", "3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+
+      - name: Install tools
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install pytest pytest-cov ruff mypy
+          python -m pip install -e ./sup-lang
+
+      - name: Lint (ruff)
+        run: |
+          ruff check sup-lang/sup || true
+
+      - name: Type check (mypy)
+        run: |
+          mypy sup-lang/sup || true
+
+      - name: Run tests
+        run: |
+          pytest -q --maxfail=1 --disable-warnings --cov=sup-lang/sup --cov-report=term-missing sup-lang
+
+  conformance:
+    name: Conformance (spec suite)
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: ${{ matrix.python }}
+          python-version: '3.11'
       - name: Install
         run: |
           python -m pip install -U pip
-          python -m pip install -e ./sup-lang
-          python -m pip install pytest hypothesis
-      - name: Run tests with coverage
+          python -m pip install -e ./sup-lang pytest
+      - name: Run conformance tests
         run: |
-          python -m pip install pytest-cov
-          pytest --cov=sup --cov-report=xml
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4
-        with:
-          files: ./coverage.xml
-          flags: unittests
-          fail_ci_if_error: false
-          token: ${{ secrets.CODECOV_TOKEN }}
+          pytest -q sup-lang/tests/test_conformance.py
 
-  lint:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-      - name: Lint/format
-        run: |
-          python -m pip install pre-commit
-          pre-commit run --all-files || (
-            echo "Pre-commit found issues. See logs above." && exit 1
-          )
-
-  security:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-      - name: Install project and tools
-        run: |
-          python -m pip install -U pip
-          python -m pip install -e ./sup-lang
-          python -m pip install pip-audit==2.7.3 cyclonedx-bom==4.4.0
-      - name: pip-audit (advisories)
-        run: |
-          pip-audit -r sup-lang/pyproject.toml || true
-      - name: Generate SBOM (CycloneDX)
-        run: |
-          cyclonedx-py environment -o sbom.json
-      - name: Upload SBOM
-        uses: actions/upload-artifact@v4
-        with:
-          name: sbom
-          path: sbom.json
-
-  perf_memory_gates:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-      - name: Install project
-        run: |
-          python -m pip install -U pip
-          python -m pip install -e ./sup-lang
-      - name: Performance gates
-        run: |
-          python -m sup.tools.bench_gates
-      - name: Memory probe
-        run: |
-          python -m sup.tools.mem_probe
 

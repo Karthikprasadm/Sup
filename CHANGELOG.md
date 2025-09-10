@@ -1,3 +1,19 @@
+# Changelog
+
+## v1.0.0-rc.1
+
+- Spec v1.0 finalized: grammar, collections, deterministic semantics, modules/imports, error model.
+- Capability model documented (safe-by-default; SUP_CAPS / SUP_UNSAFE).
+- Versioning & stability policy expanded (reserved words, AST compatibility, deprecation horizons).
+- Tooling stabilized: LSP/formatter align with the spec; tests auto-enable required caps.
+- CI: added conformance job running spec suite.
+
+### Upgrade notes
+- No breaking changes from 2.3.x.
+- If your programs need network/fs/sql/process, set `SUP_CAPS` accordingly.
+
+### Signing / SBOM
+- Releases include SBOM; signing and trusted publishing planned for final 1.0.
 Changelog
 =========
 

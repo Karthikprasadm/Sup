@@ -403,7 +403,7 @@ class Parser:
         node.line = tok.line
         return node
 
-    def assignment(self) -> AST.Assignment:
+    def assignment(self) -> AST.Assignment | AST.SetKey:
         start = self.expect("SET", "Expected 'set'.")
         # Map set form: set <key> to <value> in <target>
         if self.peek().type in {"STRING", "IDENT", "RESULT"}:
@@ -759,13 +759,13 @@ class Parser:
                 while self.match("COMMA"):
                     items.append(self.value())
             # else: allow empty list literal via just 'make list'
-            node = AST.MakeList(items=items)
-            node.line = start.line
-            return node
+            node_list = AST.MakeList(items=items)
+            node_list.line = start.line
+            return node_list
         if self.match("MAP"):
-            node = AST.MakeMap()
-            node.line = start.line
-            return node
+            node_map = AST.MakeMap()
+            node_map.line = start.line
+            return node_map
         raise SupSyntaxError(
             message="Expected 'list' or 'map' after 'make'.",
             line=start.line,
@@ -779,42 +779,42 @@ class Parser:
             item = self.value()
             self.expect("TO", "Expected 'to' after value in 'push'.")
             target = self.value()
-            node = AST.Push(item=item, target=target)
-            node.line = start.line
-            return node
+            n_push: AST.Node = AST.Push(item=item, target=target)
+            n_push.line = start.line
+            return n_push
         if tok.type == "POP":
             start = self.advance()
             if self.match("FROM"):
                 target = self.value()
             else:
                 target = self.value()
-            node = AST.Pop(target=target)
-            node.line = start.line
-            return node
+            n_pop: AST.Node = AST.Pop(target=target)
+            n_pop.line = start.line
+            return n_pop
         if tok.type == "GET":
             start = self.advance()
             key = self.value()
             self.expect("FROM", "Expected 'from' after key in 'get'.")
             target = self.value()
-            node = AST.GetKey(key=key, target=target)
-            node.line = start.line
-            return node
+            n2: AST.Node = AST.GetKey(key=key, target=target)
+            n2.line = start.line
+            return n2
         if tok.type == "DELETE":
             start = self.advance()
             key = self.value()
             self.expect("FROM", "Expected 'from' after key in 'delete'.")
             target = self.value()
-            node = AST.DeleteKey(key=key, target=target)
-            node.line = start.line
-            return node
+            n3: AST.Node = AST.DeleteKey(key=key, target=target)
+            n3.line = start.line
+            return n3
         if tok.type == "LENGTH":
             start = self.advance()
             self.expect("OF", "Expected 'of' after 'length'.")
             # allow nested expressions such as 'length of join of "," and list'
             target = self.expression()
-            node = AST.Length(target=target)
-            node.line = start.line
-            return node
+            n4: AST.Node = AST.Length(target=target)
+            n4.line = start.line
+            return n4
         # Builtin string/math operations with 'of' and/or binary forms
         # Unary/zero-arg builtins
         if tok.type in {
@@ -861,34 +861,34 @@ class Parser:
                     else ("max" if tok.type == "MAX" else "contains")
                 )
             )
-            node = AST.BuiltinCall(name=name, args=[a, b])
-            node.line = start.line
-            return node
+            n5: AST.Node = AST.BuiltinCall(name=name, args=[a, b])
+            n5.line = start.line
+            return n5
         if tok.type == "JOIN":
             start = self.advance()
             self.expect("OF", "Expected 'of' after 'join'.")
             sep = self.value()
             self.expect("AND", "Expected 'and' in join.")
             lst = self.value()
-            node = AST.BuiltinCall(name="join", args=[sep, lst])
-            node.line = start.line
-            return node
+            n6: AST.Node = AST.BuiltinCall(name="join", args=[sep, lst])
+            n6.line = start.line
+            return n6
         if tok.type == "JOIN_PATH":
             start = self.advance()
             self.expect("OF", "Expected 'of' after 'join path'.")
             a = self.value()
             self.expect("AND", "Expected 'and' in join path.")
             b = self.value()
-            node = AST.BuiltinCall(name="join_path", args=[a, b])
-            node.line = start.line
-            return node
+            n7: AST.Node = AST.BuiltinCall(name="join_path", args=[a, b])
+            n7.line = start.line
+            return n7
         if tok.type == "READ_FILE":
             start = self.advance()
             self.expect("OF", "Expected 'of' after 'read file'.")
             path = self.value()
-            node = AST.BuiltinCall(name="read_file", args=[path])
-            node.line = start.line
-            return node
+            n8: AST.Node = AST.BuiltinCall(name="read_file", args=[path])
+            n8.line = start.line
+            return n8
         if tok.type == "WRITE_FILE":
             start = self.advance()
             # Support both 'write file of <path> and <data>' and 'write file <path> and <data>'
@@ -897,63 +897,63 @@ class Parser:
             path = self.value()
             self.expect("AND", "Expected 'and' in write file.")
             data = self.value()
-            node = AST.BuiltinCall(name="write_file", args=[path, data])
-            node.line = start.line
-            return node
+            n9: AST.Node = AST.BuiltinCall(name="write_file", args=[path, data])
+            n9.line = start.line
+            return n9
         if tok.type == "JSON_PARSE":
             start = self.advance()
             self.expect("OF", "Expected 'of' after 'json parse'.")
             s = self.expression()
-            node = AST.BuiltinCall(name="json_parse", args=[s])
-            node.line = start.line
-            return node
+            n10: AST.Node = AST.BuiltinCall(name="json_parse", args=[s])
+            n10.line = start.line
+            return n10
         if tok.type == "JSON_STRINGIFY":
             start = self.advance()
             self.expect("OF", "Expected 'of' after 'json stringify'.")
             v = self.expression()
-            node = AST.BuiltinCall(name="json_stringify", args=[v])
-            node.line = start.line
-            return node
+            n11: AST.Node = AST.BuiltinCall(name="json_stringify", args=[v])
+            n11.line = start.line
+            return n11
         if tok.type == "ENV_GET":
             start = self.advance()
             self.expect("OF", "Expected 'of' after 'env get'.")
             k = self.value()
-            node = AST.BuiltinCall(name="env_get", args=[k])
-            node.line = start.line
-            return node
+            n12: AST.Node = AST.BuiltinCall(name="env_get", args=[k])
+            n12.line = start.line
+            return n12
         if tok.type == "CWD":
             start = self.advance()
-            node = AST.BuiltinCall(name="cwd", args=[])
-            node.line = start.line
-            return node
+            n13: AST.Node = AST.BuiltinCall(name="cwd", args=[])
+            n13.line = start.line
+            return n13
         if tok.type == "BASENAME":
             start = self.advance()
             self.expect("OF", "Expected 'of' after 'basename'.")
             p = self.value()
-            node = AST.BuiltinCall(name="basename", args=[p])
-            node.line = start.line
-            return node
+            n14: AST.Node = AST.BuiltinCall(name="basename", args=[p])
+            n14.line = start.line
+            return n14
         if tok.type == "DIRNAME":
             start = self.advance()
             self.expect("OF", "Expected 'of' after 'dirname'.")
             p = self.value()
-            node = AST.BuiltinCall(name="dirname", args=[p])
-            node.line = start.line
-            return node
+            n15: AST.Node = AST.BuiltinCall(name="dirname", args=[p])
+            n15.line = start.line
+            return n15
         if tok.type == "EXISTS":
             start = self.advance()
             self.expect("OF", "Expected 'of' after 'exists'.")
             p = self.expression()
-            node = AST.BuiltinCall(name="exists", args=[p])
-            node.line = start.line
-            return node
+            n16: AST.Node = AST.BuiltinCall(name="exists", args=[p])
+            n16.line = start.line
+            return n16
         if tok.type == "GLOB":
             start = self.advance()
             self.expect("OF", "Expected 'of' after 'glob'.")
             pattern = self.value()
-            node = AST.BuiltinCall(name="glob", args=[pattern])
-            node.line = start.line
-            return node
+            n17: AST.Node = AST.BuiltinCall(name="glob", args=[pattern])
+            n17.line = start.line
+            return n17
         if tok.type == "REGEX_REPLACE":
             start = self.advance()
             self.expect("OF", "Expected 'of' after 'regex replace'.")
@@ -962,9 +962,11 @@ class Parser:
             text = self.expression()
             self.expect("AND", "Expected second 'and' in regex replace.")
             repl = self.expression()
-            node = AST.BuiltinCall(name="regex_replace", args=[pat, text, repl])
-            node.line = start.line
-            return node
+            n18: AST.Node = AST.BuiltinCall(
+                name="regex_replace", args=[pat, text, repl]
+            )
+            n18.line = start.line
+            return n18
         if tok.type == "SUBPROCESS_RUN":
             start = self.advance()
             self.expect("OF", "Expected 'of' after 'subprocess run'.")
@@ -972,43 +974,43 @@ class Parser:
             args = [cmd]
             if self.match("AND"):
                 args.append(self.value())
-            node = AST.BuiltinCall(name="subprocess_run", args=args)
-            node.line = start.line
-            return node
+            n19: AST.Node = AST.BuiltinCall(name="subprocess_run", args=args)
+            n19.line = start.line
+            return n19
         if tok.type == "CSV_READ":
             start = self.advance()
             self.expect("OF", "Expected 'of' after 'csv read'.")
             p = self.expression()
-            node = AST.BuiltinCall(name="csv_read", args=[p])
-            node.line = start.line
-            return node
+            n20: AST.Node = AST.BuiltinCall(name="csv_read", args=[p])
+            n20.line = start.line
+            return n20
         if tok.type == "CSV_WRITE":
             start = self.advance()
             self.expect("OF", "Expected 'of' after 'csv write'.")
             p = self.expression()
             self.expect("AND", "Expected 'and' in csv write.")
             rows = self.expression()
-            node = AST.BuiltinCall(name="csv_write", args=[p, rows])
-            node.line = start.line
-            return node
+            n21: AST.Node = AST.BuiltinCall(name="csv_write", args=[p, rows])
+            n21.line = start.line
+            return n21
         if tok.type == "ZIP_CREATE":
             start = self.advance()
             self.expect("OF", "Expected 'of' after 'zip create'.")
             zp = self.expression()
             self.expect("AND", "Expected 'and' in zip create.")
             files = self.expression()
-            node = AST.BuiltinCall(name="zip_create", args=[zp, files])
-            node.line = start.line
-            return node
+            n22: AST.Node = AST.BuiltinCall(name="zip_create", args=[zp, files])
+            n22.line = start.line
+            return n22
         if tok.type == "ZIP_EXTRACT":
             start = self.advance()
             self.expect("OF", "Expected 'of' after 'zip extract'.")
             zp = self.value()
             self.expect("AND", "Expected 'and' in zip extract.")
             out = self.value()
-            node = AST.BuiltinCall(name="zip_extract", args=[zp, out])
-            node.line = start.line
-            return node
+            n23: AST.Node = AST.BuiltinCall(name="zip_extract", args=[zp, out])
+            n23.line = start.line
+            return n23
         if tok.type == "SQLITE_EXEC":
             start = self.advance()
             self.expect("OF", "Expected 'of' after 'sqlite exec'.")
@@ -1018,9 +1020,9 @@ class Parser:
             args = [db, sql]
             if self.match("AND"):
                 args.append(self.expression())
-            node = AST.BuiltinCall(name="sqlite_exec", args=args)
-            node.line = start.line
-            return node
+            n24: AST.Node = AST.BuiltinCall(name="sqlite_exec", args=args)
+            n24.line = start.line
+            return n24
         if tok.type == "SQLITE_QUERY":
             start = self.advance()
             self.expect("OF", "Expected 'of' after 'sqlite query'.")
@@ -1030,9 +1032,9 @@ class Parser:
             args = [db, sql]
             if self.match("AND"):
                 args.append(self.expression())
-            node = AST.BuiltinCall(name="sqlite_query", args=args)
-            node.line = start.line
-            return node
+            n25: AST.Node = AST.BuiltinCall(name="sqlite_query", args=args)
+            n25.line = start.line
+            return n25
         # No more builtins
         raise SupSyntaxError(message="Unsupported builtin or collection operation.")
 
@@ -1088,29 +1090,29 @@ class Parser:
         tok = self.peek()
         if tok.type == "NUMBER":
             t = self.advance()
-            node = AST.Number(value=t.value)  # type: ignore[arg-type]
-            node.line = t.line
-            return node
+            num_node = AST.Number(value=t.value)  # type: ignore[arg-type]
+            num_node.line = t.line
+            return num_node
         if tok.type == "STRING":
             t = self.advance()
-            node = AST.String(value=str(t.value))
-            node.line = t.line
-            return node
+            str_node = AST.String(value=str(t.value))
+            str_node.line = t.line
+            return str_node
         if tok.type == "RESULT":
             t = self.advance()
-            node = AST.Identifier(name="result")
-            node.line = t.line
-            return node
+            res_ident = AST.Identifier(name="result")
+            res_ident.line = t.line
+            return res_ident
         if tok.type in {"LIST", "MAP"}:
             t = self.advance()
-            node = AST.Identifier(name=("list" if t.type == "LIST" else "map"))
-            node.line = t.line
-            return node
+            lm_ident = AST.Identifier(name=("list" if t.type == "LIST" else "map"))
+            lm_ident.line = t.line
+            return lm_ident
         if tok.type == "IDENT":
             t = self.advance()
-            node = AST.Identifier(name=str(t.value))
-            node.line = t.line
-            return node
+            ident_node = AST.Identifier(name=str(t.value))
+            ident_node.line = t.line
+            return ident_node
         # Allow function calls as values
         if tok.type == "CALL":
             return self.call_expr()
@@ -1125,13 +1127,13 @@ class Parser:
 
     def _token_to_value_node(self, tok: Token) -> AST.Node:
         if tok.type == "STRING":
-            node = AST.String(value=str(tok.value))
-            node.line = tok.line
-            return node
+            str_node = AST.String(value=str(tok.value))
+            str_node.line = tok.line
+            return str_node
         if tok.type == "IDENT":
-            node = AST.Identifier(name=str(tok.value))
-            node.line = tok.line
-            return node
+            ident_node = AST.Identifier(name=str(tok.value))
+            ident_node.line = tok.line
+            return ident_node
         raise SupSyntaxError(
             message="Invalid key token.", line=tok.line, column=tok.column
         )

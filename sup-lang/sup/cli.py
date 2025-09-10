@@ -362,31 +362,33 @@ bye
                 return 2
 
     # Default mode: run a file or start a REPL; optional --emit python; --version
-    parser = argparse.ArgumentParser(prog="sup", description="Sup language CLI")
-    parser.add_argument("file", nargs="?", help="Path to .sup file to run")
-    parser.add_argument(
+    arg_parser = argparse.ArgumentParser(prog="sup", description="Sup language CLI")
+    arg_parser.add_argument("file", nargs="?", help="Path to .sup file to run")
+    arg_parser.add_argument(
         "--emit", choices=["python"], help="Transpile to target language and print"
     )
-    parser.add_argument(
+    arg_parser.add_argument(
         "--opt", action="store_true", help="Run optimizer on AST before execution"
     )
-    parser.add_argument("--version", action="store_true", help="Print version and exit")
-    parser.add_argument(
+    arg_parser.add_argument(
+        "--version", action="store_true", help="Print version and exit"
+    )
+    arg_parser.add_argument(
         "--opt-passes",
         help=(
             "Comma-separated passes to run: const_fold,dead_branch,copy_prop,cse,inline,dce_pure,jump_thread"
         ),
     )
-    parser.add_argument(
+    arg_parser.add_argument(
         "--opt-dump",
         help="Path to write optimized AST (use '-' for stdout)",
     )
-    parser.add_argument(
+    arg_parser.add_argument(
         "--opt-timings",
         action="store_true",
         help="Print per-pass timings (ms)",
     )
-    args = parser.parse_args(argv)
+    args = arg_parser.parse_args(argv)
 
     if args.version:
         print(__version__)

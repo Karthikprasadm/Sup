@@ -38,6 +38,9 @@ packages = ["sup"]
 addopts = "-q"
 testpaths = ["tests"]
 
+[tool.mypy]
+config_file = "mypy.ini"
+
 
 
 

@@ -198,8 +198,9 @@ class _PythonEmitter:
             return
         if isinstance(node, AST.FromImport):
             parts = []
-            for name, alias in node.names:
-                parts.append(f"{name} as {alias}" if alias else name)
+            # Avoid shadowing earlier 'alias' variable with Optional[str]
+            for name, alias_name in node.names:
+                parts.append(f"{name} as {alias_name}" if alias_name else name)
             self.w(f"from {node.module} import {', '.join(parts)}")
             return
         raise NotImplementedError(f"Unsupported statement {type(node).__name__}")
@@ -227,6 +228,7 @@ class _PythonEmitter:
         if isinstance(node, AST.Pop):
             return f"{self.emit_expr(node.target)}.pop()"
         if isinstance(node, AST.GetKey):
+            # .get may return Optional; cast to str for emitted Python simplicity
             return f"{self.emit_expr(node.target)}.get({self.emit_expr(node.key)})"
         if isinstance(node, AST.SetKey):
             return f"{self.emit_expr(node.target)}[{self.emit_expr(node.key)}] = {self.emit_expr(node.value)}"
@@ -254,9 +256,9 @@ class _PythonEmitter:
                 "lower": lambda args: f"str({args[0]}).lower()",
                 "concat": lambda args: f"str({args[0]}) + str({args[1]})",
             }
-            args = [self.emit_expr(a) for a in node.args]
+            arg_vals = [self.emit_expr(a) for a in node.args]
             if node.name in mapping:
-                return mapping[node.name](args)
+                return mapping[node.name](arg_vals)
             raise NotImplementedError(f"Unsupported builtin {node.name}")
         raise NotImplementedError(f"Unsupported expression {type(node).__name__}")
 

@@ -17,12 +17,12 @@ An English-like programming language focused on readability with deterministic s
 ```
 python -m venv .venv
 .venv\\Scripts\\activate
-pip install -e .
+pip install -e ./sup-lang
 ```
 
 2. Run a program:
 ```
-sup examples/06_mixed.sup
+sup sup-lang/examples/06_mixed.sup
 ```
 
 ### CLI usage
@@ -45,10 +45,12 @@ Check version:
 sup --version
 ```
 
-3. Run tests (with coverage in CI):
+3. Dev workflow (lint, types, tests):
 ```
-pip install pytest
-pytest
+pip install pytest ruff mypy
+ruff check sup-lang/sup --fix
+mypy --config-file sup-lang/mypy.ini sup-lang/sup
+pytest -q sup-lang
 ```
 
 ### Language Tour (MVP)
@@ -238,6 +240,22 @@ Notes:
   - `contains of S and T` where S,T are strings (substring check)
   - `join of SEP and LIST` (e.g., `join of "," and list`)
 
+### Safe mode and capabilities
+
+The interpreter is safe-by-default and gates risky operations behind capabilities:
+
+- net, process, fs_write, archive, sql
+
+Enable specific capabilities via environment variable `SUP_CAPS` (comma-separated), or disable gating with `SUP_UNSAFE=1`.
+
+Examples (PowerShell):
+```
+$env:SUP_CAPS = "fs_write,net"
+sup sup-lang/examples/06_mixed.sup
+```
+
+Tests auto-enable required caps via `tests/conftest.py`.
+
 ### Error handling notes
 
 - `throw <expr>` raises a runtime error carrying the raw value of `<expr>`; in `catch e`, the variable `e` receives that raw value.
@@ -253,4 +271,9 @@ Notes:
 ```
 \.venv\Scripts\python sup-lang\tools\run_tests.py
 ```
+
+### Further reading
+
+- Specification (v1.0): see `docs/spec.md`
+- Versioning and stability policy: see `docs/versioning.md`
 
