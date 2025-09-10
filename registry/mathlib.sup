@@ -1,0 +1,5 @@
+﻿sup
+define function called square with x
+  return multiply x and x
+end function
+bye

@@ -21,7 +21,9 @@ class Token:
 
 class Lexer:
     def __init__(self, source: str, lexicon: dict[str, list[str]]):
-        # Normalize source: keep newlines for line numbers
+        # Normalize source: strip UTF-8 BOM if present; keep newlines for line numbers
+        if source and source[:1] == "\ufeff":
+            source = source.lstrip("\ufeff")
         self.source = source
         self.lines = source.splitlines()
         self.lexicon = self._prepare_lexicon(lexicon)

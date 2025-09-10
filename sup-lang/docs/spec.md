@@ -80,3 +80,20 @@ Capability model (runtime)
 - Enable capabilities via `SUP_CAPS=net,process,fs_write,archive,sql` or disable all gates with `SUP_UNSAFE=1`.
 - Stdlib functions requiring capabilities fail with a clear message when not enabled.
 
+Resource limits (sandbox)
+-------------------------
+- Limits are optional and configured via environment variables:
+  - `SUP_LIMIT_WALL_MS`: maximum wall-clock time for a single run in milliseconds.
+  - `SUP_LIMIT_STEPS`: maximum AST evaluation steps.
+  - `SUP_LIMIT_MEM_MB`: soft memory cap (bytes tracked via tracemalloc).
+  - `SUP_LIMIT_FD`: maximum concurrently open files/handles counted by the interpreter.
+- Exceeding a limit aborts execution with an error of the form `Resource limit exceeded: <kind>`.
+
+Deterministic mode
+------------------
+- `SUP_DETERMINISTIC=1` enables reproducible behavior; `SUP_SEED` provides a numeric seed.
+- Current effects:
+  - `random_bytes(n)`: generated from the seeded PRNG.
+  - `now`: returns `1970-01-01T00:00:00`.
+- Additional APIs may opt into deterministic behavior in future minor releases; such changes are additive.
+

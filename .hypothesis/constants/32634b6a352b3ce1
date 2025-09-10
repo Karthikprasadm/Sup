@@ -1,0 +1,4 @@
+# file: D:\sup2\sup-lang\sup\wasm_emitter.py
+# hypothesis_version: 6.138.15
+
+['      br_if $L', '      i32.add', '      i32.const 1', '      i32.lt_s', '    (loop $L', '    )', '    call $print', '    f64.const 0', '    i32.const 0', '    i32.trunc_f64_s', '    local.set $tmp_i', '    local.set $tmp_n', '  (func $main', '  )', '(local f64)', '(module', ')', '*', '+', '-', '/', 'body', 'cond', 'count_expr', 'else_body', 'expr', 'f64.add', 'f64.const 0', 'f64.div', 'f64.mul', 'f64.sub', 'iterable', 'left', 'right', 'statements']

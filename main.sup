@@ -1,0 +1,4 @@
+﻿sup
+import mathlib
+print call mathlib.square with 7
+bye

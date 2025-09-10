@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+from contextlib import contextmanager
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -53,9 +54,72 @@ class Interpreter:
         # HTTP defaults
         self._http_timeout_sec: float = 10.0
         self._http_max_bytes: int = 1_000_000
+        # ---- Sandbox limits (env-configurable) ----
+        # SUP_LIMIT_WALL_MS, SUP_LIMIT_STEPS, SUP_LIMIT_MEM_MB, SUP_LIMIT_FD
+        try:
+            wall_ms = os.environ.get("SUP_LIMIT_WALL_MS")
+            self._limit_wall_sec: float | None = (
+                (float(wall_ms) / 1000.0) if wall_ms else None
+            )
+        except Exception:
+            self._limit_wall_sec = None
+        try:
+            steps = os.environ.get("SUP_LIMIT_STEPS")
+            self._limit_steps: int | None = int(steps) if steps else None
+        except Exception:
+            self._limit_steps = None
+        try:
+            mem_mb = os.environ.get("SUP_LIMIT_MEM_MB")
+            self._limit_mem_bytes: int | None = (
+                int(float(mem_mb) * 1024 * 1024) if mem_mb else None
+            )
+        except Exception:
+            self._limit_mem_bytes = None
+        try:
+            fdl = os.environ.get("SUP_LIMIT_FD")
+            self._limit_fd: int | None = int(fdl) if fdl else None
+        except Exception:
+            self._limit_fd = None
+        # Deterministic mode
+        self._deterministic: bool = os.environ.get("SUP_DETERMINISTIC") in {
+            "1",
+            "true",
+            "yes",
+        }
+        self._seed = (
+            int(os.environ.get("SUP_SEED", "0")) if self._deterministic else None
+        )
+        if self._deterministic:
+            import random as _random
+
+            self._rng = _random.Random(self._seed or 0)
+        else:
+            self._rng = None
+        # Runtime counters
+        import time as _t
+
+        self._wall_start = _t.perf_counter()
+        self._steps = 0
+        # Memory tracking
+        self._tm = None
+        if self._limit_mem_bytes is not None:
+            try:
+                import tracemalloc as _tm
+
+                _tm.start()
+                self._tm = _tm
+            except Exception:
+                self._tm = None
+        # FD tracking
+        self._fd_open_count = 0
 
     def run(self, program: AST.Program, *, stdin: str | None = None) -> str:
         self.io.stdin = stdin
+        # reset counters
+        import time as _t
+
+        self._wall_start = _t.perf_counter()
+        self._steps = 0
         self.eval_program(program)
         return "".join(self.io.outputs)
 
@@ -64,6 +128,9 @@ class Interpreter:
             self.eval(stmt)
 
     def eval(self, node: AST.Node) -> object | None:
+        # step & resource checks
+        self._steps += 1
+        self._check_limits()
         if isinstance(node, AST.Assignment):
             value = self.eval(node.expr)
             self.env[node.name.lower()] = value
@@ -305,6 +372,48 @@ class Interpreter:
         if isinstance(node, AST.Compare):
             return self._compare(self.eval(node.left), node.op, self.eval(node.right))
         raise SupRuntimeError(message=f"Unsupported AST node {type(node).__name__}.")
+
+    # ---- Sandbox helpers ----
+    def _check_limits(self) -> None:
+        # steps
+        if self._limit_steps is not None and self._steps > self._limit_steps:
+            raise SupRuntimeError(message="Resource limit exceeded: steps")
+        # wall time
+        if self._limit_wall_sec is not None:
+            import time as _t
+
+            if (_t.perf_counter() - self._wall_start) > self._limit_wall_sec:
+                raise SupRuntimeError(message="Resource limit exceeded: wall time")
+        # memory (tracemalloc current usage)
+        if self._limit_mem_bytes is not None and self._tm is not None:
+            try:
+                current, _peak = self._tm.get_traced_memory()
+                if current > self._limit_mem_bytes:
+                    raise SupRuntimeError(message="Resource limit exceeded: memory")
+            except Exception:
+                pass
+
+    def _reserve_fd(self, n: int = 1) -> None:
+        if self._limit_fd is None:
+            return
+        if self._fd_open_count + n > self._limit_fd:
+            raise SupRuntimeError(message="Resource limit exceeded: file descriptors")
+        self._fd_open_count += n
+
+    def _release_fd(self, n: int = 1) -> None:
+        self._fd_open_count = max(0, self._fd_open_count - n)
+
+    @contextmanager
+    def _safe_open(self, path: str, *args: object, **kwargs: object):
+        self._reserve_fd(1)
+        f = open(path, *args, **kwargs)  # type: ignore[arg-type]
+        try:
+            yield f
+        finally:
+            try:
+                f.close()
+            finally:
+                self._release_fd(1)
 
     def _compare(self, left: object, op: str | None, right: object) -> bool:  # type: ignore[override]
         if op == ">":

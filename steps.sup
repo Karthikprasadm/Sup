@@ -1,0 +1,5 @@
+﻿sup
+repeat 300000 times
+  set x to add 1 and 1
+end repeat
+bye

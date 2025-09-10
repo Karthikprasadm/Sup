@@ -1,0 +1,4 @@
+﻿sup
+set x to 7
+print x
+bye

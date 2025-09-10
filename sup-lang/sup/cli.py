@@ -13,6 +13,7 @@ from .parser import AST  # type: ignore
 from .parser import Parser
 from .transpiler import build_sourcemap_mappings, to_python, to_python_with_map
 from .typecheck import check as tc_check
+from .wasm_emitter import to_wat
 
 
 def run_source(
@@ -213,7 +214,7 @@ def main(argv: list[str] | None = None) -> int:
             sys.stderr.write(str(e) + "\n")
             return 2
 
-    # Package/typecheck subcommands: build, lock, test, publish, check, init
+    # Package/typecheck subcommands: build, lock, test, publish, check, init, install
     if len(argv) > 0 and argv[0] in {
         "build",
         "lock",
@@ -221,8 +222,83 @@ def main(argv: list[str] | None = None) -> int:
         "publish",
         "check",
         "init",
+        "install",
     }:
         cmd = argv[0]
+        if cmd == "install":
+            p = argparse.ArgumentParser(
+                prog="sup install",
+                description="Install a SUP module from a local directory or HTTP registry",
+            )
+            p.add_argument(
+                "name", help="Module name to install (optionally name@version)"
+            )
+            p.add_argument(
+                "--registry",
+                default=os.path.join(os.getcwd(), "registry"),
+                help="Path to local registry or HTTP base URL (default: ./registry)",
+            )
+            args_i2 = p.parse_args(argv[1:])
+            try:
+                name_ver = args_i2.name
+                if "@" in name_ver:
+                    name, ver = name_ver.split("@", 1)
+                else:
+                    name, ver = name_ver, None
+                # local dir registry
+                if args_i2.registry.startswith(
+                    "http://"
+                ) or args_i2.registry.startswith("https://"):
+                    import json as _json
+                    import urllib.request as _u
+
+                    meta_url = (
+                        args_i2.registry.rstrip("/")
+                        + f"/resolve?name={name}&version={ver or '*'}"
+                    )
+                    with _u.urlopen(meta_url) as r:
+                        if r.getcode() // 100 != 2:
+                            raise RuntimeError("Registry resolve failed")
+                        meta = _json.loads(r.read().decode("utf-8"))
+                    src_code = meta.get("source", "")
+                    if not src_code:
+                        raise RuntimeError("Registry returned empty source")
+                else:
+                    reg_dir = os.path.abspath(args_i2.registry)
+                    cand = os.path.join(reg_dir, f"{name}.sup")
+                    if not os.path.exists(cand):
+                        raise FileNotFoundError(
+                            f"Module '{name}' not found in {reg_dir}"
+                        )
+                    src_code = open(cand, encoding="utf-8").read()
+                # Write to project
+                dst = os.path.join(os.getcwd(), f"{name}.sup")
+                with open(dst, "w", encoding="utf-8") as wf:
+                    wf.write(src_code)
+                # Update lockfile v2 (JSON)
+                import hashlib as _hh
+                import json as _json
+
+                h = _hh.sha256(src_code.encode("utf-8")).hexdigest()
+                lock_path = os.path.join(os.getcwd(), "sup.lock.json")
+                lock: dict = {"version": 2, "modules": {}}
+                if os.path.exists(lock_path):
+                    try:
+                        lock = _json.loads(open(lock_path, encoding="utf-8").read())
+                    except Exception:
+                        pass
+                lock.setdefault("modules", {})[name] = {
+                    "sha256": h,
+                    "source": "url" if args_i2.registry.startswith("http") else "local",
+                    "version": ver or "*",
+                }
+                with open(lock_path, "w", encoding="utf-8") as lf:
+                    lf.write(_json.dumps(lock, indent=2))
+                print(f"Installed {name} -> {dst}")
+                return 0
+            except Exception as e:
+                sys.stderr.write(str(e) + "\n")
+                return 2
         if cmd == "check":
             p = argparse.ArgumentParser(
                 prog="sup check", description="Static checks for a SUP file"
@@ -299,13 +375,18 @@ def main(argv: list[str] | None = None) -> int:
         if cmd == "publish":
             p = argparse.ArgumentParser(
                 prog="sup publish",
-                description="Create a distributable tarball of a SUP project",
+                description="Create a distributable tarball of a SUP project or upload to a registry",
             )
             p.add_argument("project_dir", help="Project directory containing sup.json")
+            p.add_argument(
+                "--registry", help="HTTP registry base URL (if provided, upload)"
+            )
             args_p = p.parse_args(argv[1:])
             try:
+                import hashlib as _hh
                 import json
                 import tarfile
+                import urllib.request as _u
 
                 proj = os.path.abspath(args_p.project_dir)
                 meta_path = os.path.join(proj, "sup.json")
@@ -321,6 +402,20 @@ def main(argv: list[str] | None = None) -> int:
                     # include entry and metadata for now
                     tf.add(os.path.join(proj, entry), arcname=entry)
                     tf.add(meta_path, arcname="sup.json")
+                # integrity
+                digest = _hh.sha256(open(tar_path, "rb").read()).hexdigest()
+                if args_p.registry:
+                    # POST to registry: /upload?name=&version=&sha256=
+                    url = args_p.registry.rstrip("/") + "/upload"
+                    body = json.dumps(
+                        {"name": name, "version": version, "sha256": digest}
+                    ).encode("utf-8")
+                    req = _u.Request(
+                        url, data=body, headers={"Content-Type": "application/json"}
+                    )
+                    with _u.urlopen(req) as r:
+                        if r.getcode() // 100 != 2:
+                            raise RuntimeError("Registry upload failed")
                 print(f"Created {tar_path}")
                 return 0
             except Exception as e:
@@ -365,7 +460,9 @@ bye
     arg_parser = argparse.ArgumentParser(prog="sup", description="Sup language CLI")
     arg_parser.add_argument("file", nargs="?", help="Path to .sup file to run")
     arg_parser.add_argument(
-        "--emit", choices=["python"], help="Transpile to target language and print"
+        "--emit",
+        choices=["python", "wasm"],
+        help="Transpile to target language and print",
     )
     arg_parser.add_argument(
         "--opt", action="store_true", help="Run optimizer on AST before execution"
@@ -400,11 +497,14 @@ bye
                 src = f.read()
             try:
                 if args.emit == "python":
-
                     program = Parser().parse(src)
                     py_code, src_lines, _src_cols = to_python_with_map(program)
                     sys.stdout.write(py_code)
-                    # also write a .map next to stdout? Skip for stdout mode
+                    return 0
+                if args.emit == "wasm":
+                    program = Parser().parse(src)
+                    wat = to_wat(program)
+                    sys.stdout.write(wat)
                     return 0
                 out = run_source(src, emit=args.emit)
                 if out:

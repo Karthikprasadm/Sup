@@ -1,0 +1,10 @@
+{
+  "version": 2,
+  "modules": {
+    "mathlib": {
+      "sha256": "ba66cb6c9e45933e20ee96407cdcb4d69b5ea165643bf2823f19ada523d3f6d2",
+      "source": "url",
+      "version": "*"
+    }
+  }
+}

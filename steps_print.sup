@@ -1,0 +1,7 @@
+﻿sup
+set c to 0
+repeat 300000 times
+  set c to add c and 1
+end repeat
+print c
+bye

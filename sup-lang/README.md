@@ -256,6 +256,30 @@ sup sup-lang/examples/06_mixed.sup
 
 Tests auto-enable required caps via `tests/conftest.py`.
 
+### Sandbox limits and deterministic mode
+
+Resource limits (unset = no limit):
+- `SUP_LIMIT_WALL_MS`: Max wall-clock time for one run (e.g., `2000`).
+- `SUP_LIMIT_STEPS`: Max AST evaluation steps (e.g., `100000`).
+- `SUP_LIMIT_MEM_MB`: Soft memory cap via tracemalloc (e.g., `256`).
+- `SUP_LIMIT_FD`: Max simultaneously open files/handles tracked by the interpreter (e.g., `64`).
+
+Deterministic mode:
+- `SUP_DETERMINISTIC=1`: Enables reproducible behavior; optional `SUP_SEED` seeds the internal PRNG.
+- Effects today: `random_bytes` uses a seeded generator; `now` returns `1970-01-01T00:00:00`. More APIs may be added.
+
+Examples (PowerShell):
+```
+$env:SUP_LIMIT_WALL_MS = "2000"
+$env:SUP_LIMIT_STEPS   = "200000"
+$env:SUP_LIMIT_MEM_MB  = "256"
+$env:SUP_LIMIT_FD      = "64"
+sup .\your.sup
+
+# Deterministic run
+$env:SUP_DETERMINISTIC = "1"; $env:SUP_SEED = "42"; sup .\your.sup
+```
+
 ### Error handling notes
 
 - `throw <expr>` raises a runtime error carrying the raw value of `<expr>`; in `catch e`, the variable `e` receives that raw value.
