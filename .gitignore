@@ -1,3 +1,28 @@
+# Build artifacts
+sup-lang/dist/
+sup-lang/sup-lang/site/
+sup-lang/site/
+sup-v0.2.2.tar.gz
+*.whl
+*.tar.gz
+
+# Node/extension artifacts
+sup-lang/vscode-extension/node_modules/
+*.vsix
+
+# Secrets/keys
+gpg_private_key.asc
+
+# Python/venv
+.venv/
+__pycache__/
+*.pyc
+
+# OS/editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
 *.vsix
 sup-lang/vscode-extension/*.vsix
 
