@@ -13,7 +13,6 @@ from .parser import AST  # type: ignore
 from .parser import Parser
 from .transpiler import build_sourcemap_mappings, to_python, to_python_with_map
 from .typecheck import check as tc_check
-from .wasm_emitter import to_wat
 
 
 def run_source(
@@ -461,7 +460,7 @@ bye
     arg_parser.add_argument("file", nargs="?", help="Path to .sup file to run")
     arg_parser.add_argument(
         "--emit",
-        choices=["python", "wasm"],
+        choices=["python"],
         help="Transpile to target language and print",
     )
     arg_parser.add_argument(
@@ -500,11 +499,6 @@ bye
                     program = Parser().parse(src)
                     py_code, src_lines, _src_cols = to_python_with_map(program)
                     sys.stdout.write(py_code)
-                    return 0
-                if args.emit == "wasm":
-                    program = Parser().parse(src)
-                    wat = to_wat(program)
-                    sys.stdout.write(wat)
                     return 0
                 out = run_source(src, emit=args.emit)
                 if out:

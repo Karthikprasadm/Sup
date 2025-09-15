@@ -1,4 +1,4 @@
-site_name: SUP Language
+site_name: Sup
 nav:
   - Home: index.md
   - Language Spec: spec.md
@@ -7,6 +7,10 @@ nav:
   - How-To Cookbook: cookbook.md
   - Examples: examples.md
   - Benchmarks: benchmarks.md
+  - Modules: modules.md
+  - Packaging: packaging.md
+  - Types: types.md
+  - Versioning: versioning.md
   - Contributing: contributing.md
   - Code of Conduct: code_of_conduct.md
   - Governance: governance.md
@@ -15,5 +19,27 @@ nav:
     - Overview: rfcs/index.md
     - Template: rfcs/0000-template.md
 theme:
-  name: readthedocs
+  name: material
+  features:
+    - content.code.copy
+    - navigation.instant
+    - navigation.sections
+    - navigation.tracking
+    - search.highlight
+    - search.suggest
+repo_url: https://github.com/Karthikprasadm/Sup
+edit_uri: edit/main/sup-lang/docs/
+plugins:
+  - search
+  - minify
+  - git-revision-date-localized:
+      fallback_to_build_date: true
+extra:
+  analytics:
+    provider: google
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/Karthikprasadm/Sup
+extra_javascript: []
+extra_css: []
 
