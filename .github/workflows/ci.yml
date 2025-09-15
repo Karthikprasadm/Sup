@@ -72,6 +72,9 @@ jobs:
       - name: Run benchmarks
         run: |
           python -m sup.tools.benchmarks --case arith_loop --iters 5 --json --out perf.json
+      - name: Enforce performance budgets
+        run: |
+          python -m sup.tools.bench_gates
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
