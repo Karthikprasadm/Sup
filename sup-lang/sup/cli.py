@@ -255,13 +255,36 @@ def main(argv: list[str] | None = None) -> int:
                         args_i2.registry.rstrip("/")
                         + f"/resolve?name={name}&version={ver or '*'}"
                     )
-                    with _u.urlopen(meta_url) as r:
+                    headers = {}
+                    token = os.environ.get("REGISTRY_TOKEN")
+                    if token:
+                        headers["Authorization"] = f"Bearer {token}"
+                    req = _u.Request(meta_url, headers=headers)
+                    with _u.urlopen(req) as r:
                         if r.getcode() // 100 != 2:
                             raise RuntimeError("Registry resolve failed")
                         meta = _json.loads(r.read().decode("utf-8"))
                     src_code = meta.get("source", "")
+                    digest = meta.get("sha256")
                     if not src_code:
                         raise RuntimeError("Registry returned empty source")
+                    # Verify integrity if digest present
+                    if digest:
+                        import hashlib as _hh
+
+                        h = _hh.sha256(src_code.encode("utf-8")).hexdigest()
+                        if h != digest:
+                            raise RuntimeError("Integrity check failed: sha256 mismatch")
+                    # Optional HMAC verification if shared secret configured
+                    hmac_given = meta.get("hmac")
+                    hmac_secret = os.environ.get("SUP_REGISTRY_HMAC")
+                    if hmac_given and hmac_secret:
+                        import hmac as _h
+                        import hashlib as _hh2
+
+                        calc = _h.new(hmac_secret.encode("utf-8"), src_code.encode("utf-8"), _hh2.sha256).hexdigest()
+                        if calc != hmac_given:
+                            raise RuntimeError("Integrity check failed: hmac mismatch")
                 else:
                     reg_dir = os.path.abspath(args_i2.registry)
                     cand = os.path.join(reg_dir, f"{name}.sup")
@@ -409,9 +432,23 @@ def main(argv: list[str] | None = None) -> int:
                     body = json.dumps(
                         {"name": name, "version": version, "sha256": digest}
                     ).encode("utf-8")
-                    req = _u.Request(
-                        url, data=body, headers={"Content-Type": "application/json"}
-                    )
+                    headers = {"Content-Type": "application/json"}
+                    token = os.environ.get("REGISTRY_TOKEN")
+                    if token:
+                        headers["Authorization"] = f"Bearer {token}"
+                    # Add optional HMAC of tarball for verification
+                    hmac_secret = os.environ.get("SUP_REGISTRY_HMAC")
+                    if hmac_secret:
+                        import hmac as _h
+                        import hashlib as _hh2
+
+                        with open(tar_path, "rb") as rf:
+                            tar_bytes = rf.read()
+                        hmac_hex = _h.new(hmac_secret.encode("utf-8"), tar_bytes, _hh2.sha256).hexdigest()
+                        payload = json.loads(body.decode("utf-8"))
+                        payload["hmac"] = hmac_hex
+                        body = json.dumps(payload).encode("utf-8")
+                    req = _u.Request(url, data=body, headers=headers)
                     with _u.urlopen(req) as r:
                         if r.getcode() // 100 != 2:
                             raise RuntimeError("Registry upload failed")

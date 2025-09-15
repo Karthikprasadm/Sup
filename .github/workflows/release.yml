@@ -3,51 +3,66 @@ name: Release
 on:
   push:
     tags:
-      - 'v*.*.*'
+      - 'v*'
+
+permissions:
+  contents: write
+  id-token: write
 
 jobs:
-  build-publish:
+  pypi:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      id-token: write
+    defaults:
+      run:
+        working-directory: sup-lang
     steps:
       - uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
-
-      - name: Build package
-        run: |
-          python -m pip install --upgrade pip build
-          cd sup-lang
-          python -m build
-          cd ..
-
-      - name: Generate SBOM (CycloneDX)
-        run: |
-          python -m pip install cyclonedx-bom
-          cyclonedx-py --evidence -r -o sbom.json
-
-      - name: Create GitHub Release
-        id: create_release
-        uses: softprops/action-gh-release@v2
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
         with:
-          name: ${{ github.ref_name }}
-          draft: false
-          prerelease: false
-          files: |
+          python-version: '3.12'
+      - name: Install build tools
+        run: |
+          python -m pip install --upgrade pip
+          pip install build twine hatchling cyclonedx-bom cyclonedx-python-lib
+      - name: Build (reproducible)
+        env:
+          SOURCE_DATE_EPOCH: '1704067200'
+        run: python -m build
+      - name: Twine check
+        run: twine check dist/*
+      - name: SBOM (CycloneDX)
+        run: cyclonedx-py environment -o sbom.json
+      - name: Sign artifacts (if secrets present)
+        env:
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+        run: |
+          if [ -n "${GPG_PRIVATE_KEY}" ] && [ -n "${GPG_PASSPHRASE}" ]; then
+            printf "%s" "$GPG_PRIVATE_KEY" | gpg --batch --import || true
+            for f in dist/*; do
+              gpg --batch --yes --pinentry-mode loopback --passphrase "$GPG_PASSPHRASE" --detach-sign --armor "$f" || true
+            done
+          else
+            echo "GPG secrets not set; skipping signing."
+          fi
+      - name: Sigstore attest and sign (optional)
+        if: ${{ github.event_name == 'push' }}
+        uses: sigstore/gh-action-sigstore-python@v3.0.0
+        with:
+          inputs: |
             sup-lang/dist/*
-            sbom.json
-
-      - name: Publish to PyPI
-        if: startsWith(github.ref, 'refs/tags/v')
-        uses: pypa/gh-action-pypi-publish@v1.12.2
+          upload-signing-artifacts: true
+      - name: SLSA provenance
+        uses: slsa-framework/slsa-github-generator/actions/generator@v2.0.0
+        with:
+          base64-subjects: true
+          upload-assets: true
+      - name: Publish to PyPI (token or OIDC)
+        uses: pypa/gh-action-pypi-publish@release/v1
         with:
           packages-dir: sup-lang/dist
-          skip-existing: true
-          print-hash: true
+          password: ${{ secrets.PYPI_API_TOKEN }}
 
 
