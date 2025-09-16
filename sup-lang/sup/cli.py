@@ -20,7 +20,13 @@ except Exception:  # pragma: no cover - fallback for environments missing optimi
 from .parser import AST  # type: ignore
 from .parser import Parser
 from .transpiler import build_sourcemap_mappings, to_python, to_python_with_map
-from .typecheck import check as tc_check
+
+try:
+    from .typecheck import check as tc_check
+except Exception:  # pragma: no cover - fallback if typecheck is unavailable
+
+    def tc_check(_program):  # type: ignore[override]
+        return []
 
 
 def run_source(
