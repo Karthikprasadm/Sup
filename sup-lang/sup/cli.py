@@ -8,7 +8,15 @@ import sys
 from . import __version__
 from .errors import SupError
 from .interpreter import Interpreter
-from .optimizer import optimize_ex
+
+try:
+    from .optimizer import optimize_ex
+except Exception:  # pragma: no cover - fallback for environments missing optimizer
+
+    def optimize_ex(program, *, enabled_passes=None, collect_timings=False, dump_stream=None):  # type: ignore[override]
+        return program, {}
+
+
 from .parser import AST  # type: ignore
 from .parser import Parser
 from .transpiler import build_sourcemap_mappings, to_python, to_python_with_map
