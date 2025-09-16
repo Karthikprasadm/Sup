@@ -49,6 +49,9 @@ sup --emit python path/to/program.sup
 sup transpile path/to/entry.sup --out dist_py
 python dist_py/run.py
 sup --version
+sup path/to/program.sup --backend vm
+sup path/to/program.sup --debug
+sup transpile path/to/entry.sup --out dist_py --sourcemap
 ```
 
 REPL: type a full program (from `sup` to `bye`) and it will execute.
@@ -74,7 +77,7 @@ code --install-extension wingspawn.sup-language-support
 ```
 - Or from local VSIX (immediate):
 ```
-code --install-extension sup-lang\\vscode-extension\\sup-language-support-0.0.3.vsix
+code --install-extension sup-lang\\vscode-extension\\sup-lang-support-2.3.1.vsix
 ```
 
 Docs & Examples
@@ -90,6 +93,17 @@ python -m venv .venv
 pip install -e sup-lang
 pip install pytest
 pytest -q sup-lang
+```
+
+Pre-commit hooks and formatting/linting:
+```
+pip install pre-commit
+pre-commit install -f --install-hooks
+pre-commit run -a
+ruff check sup-lang/sup --fix
+black sup-lang
+isort sup-lang
+mypy --config-file sup-lang/mypy.ini sup-lang/sup
 ```
 
 Release

@@ -1,0 +1,14 @@
+[33mcommit df981da705f2b5d5e8d69f66859d7a672845454b[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mfeature/sandbox-wasm-registry[m[33m, [m[1;31morigin/feature/sandbox-wasm-registry[m[33m)[m
+Author: Karthik <201144039+Karthikprasadm@users.noreply.github.com>
+Date:   Tue Sep 16 13:07:59 2025 +0530
+
+    sup: parser/stdlib/CLI/LSP updates; docs+CI+tools; fix runpy/pre-commit issues
+
+ .github/dependabot.yml          | 11 [31m------[m
+ .github/workflows/fuzz.yml      | 47 [31m-----------------------[m
+ .github/workflows/osv.yml       | 23 [31m------------[m
+ .github/workflows/release.yml   | 83 [32m+++++++++++++++++[m[31m------------------------[m
+ .github/workflows/scorecard.yml | 30 [31m---------------[m
+ sup-lang/sup/cli.py             | 45 [32m++[m[31m--------------------[m
+ sup-lang/sup/interpreter.py     | 35 [32m++[m[31m---------------[m
+ 7 files changed, 42 insertions(+), 232 deletions(-)

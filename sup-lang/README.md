@@ -40,6 +40,13 @@ Transpile entry + imports to a folder and run:
 sup transpile path/to/entry.sup --out dist_py
 python dist_py/run.py
 ```
+Choose backend, enable optimizer and sourcemaps, or launch debugger:
+```
+sup path/to/program.sup --backend vm
+sup path/to/program.sup --opt
+sup transpile path/to/entry.sup --out dist_py --sourcemap
+sup path/to/program.sup --debug
+```
 Check version:
 ```
 sup --version
@@ -51,6 +58,28 @@ pip install pytest ruff mypy
 ruff check sup-lang/sup --fix
 mypy --config-file sup-lang/mypy.ini sup-lang/sup
 pytest -q sup-lang
+```
+
+Pre-commit hooks (format, lint, import sort, types):
+```
+pip install pre-commit
+pre-commit install -f --install-hooks
+pre-commit run -a
+```
+
+Format/lint manually:
+```
+ruff check sup-lang/sup --fix
+black sup-lang
+isort sup-lang
+mypy --config-file sup-lang/mypy.ini sup-lang/sup
+```
+
+Debugger, profiler, coverage:
+```
+sup sup-lang/examples/06_mixed.sup --debug
+python -m sup.tools.profiler sup-lang/examples/06_mixed.sup
+python -m sup.tools.coverage sup-lang/examples/06_mixed.sup
 ```
 
 ### Language Tour (MVP)

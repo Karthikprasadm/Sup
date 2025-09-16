@@ -83,4 +83,20 @@ sup transpile sup-lang/examples/06_mixed.sup --out dist_py
 python dist_py/run.py
 ```
 
+Advanced flags
+--------------
+```
+# Run using the bytecode VM backend
+sup sup-lang/examples/06_mixed.sup --backend vm
+
+# Enable simple AST optimizations
+sup sup-lang/examples/06_mixed.sup --opt
+
+# Emit sourcemaps during transpile
+sup transpile sup-lang/examples/06_mixed.sup --out dist_py --sourcemap
+
+# Launch interactive debugger
+sup sup-lang/examples/06_mixed.sup --debug
+```
+
 
