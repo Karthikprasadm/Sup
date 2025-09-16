@@ -93,13 +93,6 @@ class Interpreter:
             import random as _random
 
             self._rng = _random.Random(self._seed or 0)
-            # Force C locale for stable formatting/sorting
-            try:
-                import locale as _loc
-
-                _loc.setlocale(_loc.LC_ALL, "C")
-            except Exception:
-                pass
         else:
             self._rng = None
         # Runtime counters
@@ -681,7 +674,7 @@ class Interpreter:
             self.last_result = qs_map
             return qs_map
 
-        # Crypto / base64 / randomness / time
+        # Crypto / base64 / randomness
         if name == "sha256":
             import hashlib as _hh
 
@@ -714,33 +707,13 @@ class Interpreter:
             return hmac_hex
         if name == "random_bytes":
             import base64 as _b64
-            n = int(self._num(self.eval(node.args[0]))) if len(node.args) > 0 else 16
-            n = max(1, n)
-            if self._rng is not None:
-                # Deterministic bytes derived from PRNG
-                data = bytes(self._rng.randrange(0, 256) for _ in range(n))
-            else:
-                import secrets as _secrets
+            import secrets as _secrets
 
-                data = _secrets.token_bytes(n)
+            n = int(self._num(self.eval(node.args[0]))) if len(node.args) > 0 else 16
+            data = _secrets.token_bytes(max(1, n))
             b64 = _b64.b64encode(data).decode("ascii")
             self.last_result = b64
             return b64
-        if name == "now":
-            # Return ISO 8601 UTC timestamp. In deterministic mode, derive from seed.
-            import datetime as _dt
-
-            if self._deterministic:
-                # Stable pseudo-time based on seed (seconds since epoch)
-                base = int(self._seed or 0)
-                t = _dt.datetime(1970, 1, 1, tzinfo=_dt.timezone.utc) + _dt.timedelta(
-                    seconds=base
-                )
-            else:
-                t = _dt.datetime.now(tz=_dt.timezone.utc)
-            iso = t.replace(microsecond=0).isoformat().replace("+00:00", "Z")
-            self.last_result = iso
-            return iso
         if name == "base64_encode":
             import base64 as _b64
 
