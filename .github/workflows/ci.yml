@@ -70,6 +70,7 @@ jobs:
         run: |
           python -m pip install -U pip
           python -m pip install -e ./sup-lang
+          python -c "import sup, sys; print('sup import ok', sup.__version__)"
       - name: Run benchmarks
         run: |
           python -m sup.tools.benchmarks --case arith_loop --iters 5 --json --out perf.json
