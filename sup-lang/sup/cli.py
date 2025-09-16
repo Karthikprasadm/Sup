@@ -338,16 +338,37 @@ def main(argv: list[str] | None = None) -> int:
             p.add_argument("entry", help="Entry .sup file")
             args_l = p.parse_args(argv[1:])
             try:
-                # Very simple lock: list imported modules discovered via parse
+                import hashlib as _hh
+                import json as _json
+
                 parser = Parser()
                 src = open(args_l.entry, encoding="utf-8").read()
                 program = parser.parse(src)
                 mods: set[str] = set()
                 _gather_imports(program, mods)
-                lock_path = os.path.join(os.getcwd(), "sup.lock")
-                with open(lock_path, "w", encoding="utf-8") as lf:
-                    lf.write("\n".join(sorted(mods)))
-                print(f"Wrote lockfile {lock_path}")
+
+                modules: dict[str, dict] = {}
+                entry_name = os.path.splitext(os.path.basename(args_l.entry))[0]
+                all_modules = set(mods)
+                all_modules.add(entry_name)
+                for mod in sorted(all_modules):
+                    if mod == entry_name:
+                        path = os.path.abspath(args_l.entry)
+                    else:
+                        path = _resolve_module_path(mod)
+                    code = open(path, "rb").read()
+                    sha256 = _hh.sha256(code).hexdigest()
+                    modules[mod] = {
+                        "version": "*",
+                        "sha256": sha256,
+                        "path": os.path.relpath(path, os.getcwd()),
+                        "source": "local",
+                    }
+                lock_obj = {"version": 2, "modules": modules}
+                lock_path_json = os.path.join(os.getcwd(), "sup.lock.json")
+                with open(lock_path_json, "w", encoding="utf-8") as lf:
+                    lf.write(_json.dumps(lock_obj, indent=2))
+                print(f"Wrote lockfile {lock_path_json}")
                 return 0
             except Exception as e:
                 sys.stderr.write(str(e) + "\n")
