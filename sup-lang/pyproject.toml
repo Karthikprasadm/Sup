@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "sup-lang"
-version = "2.3.6"
+version = "2.8"
 description = "Sup: an English-like programming language (MVP)"
 readme = "README.md"
 requires-python = ">=3.9"
