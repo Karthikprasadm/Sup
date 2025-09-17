@@ -74,10 +74,46 @@ jobs:
           python -c "import sup, sys; print('sup import ok', sup.__version__)"
       - name: Run benchmarks
         run: |
-          python "$GITHUB_WORKSPACE/sup-lang/sup/tools/benchmarks.py" --case arith_loop --iters 5 --json --out "$GITHUB_WORKSPACE/perf.json"
+          python - <<'PY'
+          import time, statistics as stats, json
+          from sup.cli import run_source
+          code = (
+              "sup\n"
+              "set total to 0\n"
+              "repeat 20000 times\n"
+              "set total to add total and 3\n"
+              "endrepeat\n"
+              "bye\n"
+          )
+          def run_case(src: str, warmup: int = 2, iters: int = 5):
+              for _ in range(max(0, warmup)):
+                  run_source(src)
+              times = []
+              for _ in range(max(1, iters)):
+                  t0 = time.perf_counter()
+                  run_source(src)
+                  times.append(time.perf_counter() - t0)
+              return {
+                  "min": min(times),
+                  "median": stats.median(times),
+                  "mean": sum(times) / len(times),
+                  "max": max(times),
+              }
+          results = {"cases": {"arith_loop": run_case(code)}, "warmup": 2, "iters": 5}
+          with open("perf.json", "w", encoding="utf-8") as f:
+              json.dump(results, f)
+          print(json.dumps(results))
+          PY
       - name: Enforce performance budgets
         run: |
-          python "$GITHUB_WORKSPACE/sup-lang/sup/tools/bench_gates.py"
+          python - <<'PY'
+          import json, sys
+          data = json.load(open("perf.json", "r", encoding="utf-8"))
+          med = data["cases"]["arith_loop"]["median"]
+          budget = 0.20
+          print(f"arith_loop median {med:.6f}s (budget {budget:.2f}s)")
+          sys.exit(0 if med <= budget else 1)
+          PY
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
