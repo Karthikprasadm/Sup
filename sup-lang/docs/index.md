@@ -37,6 +37,20 @@ mypy --config-file sup-lang/mypy.ini sup-lang/sup
 pytest -q sup-lang
 ```
 
+Distribution (v2.8.0)
+---------------------
+
+- PyPI: `sup-lang` — `pip install sup-lang`
+- VS Code Marketplace: `wingspawn.sup-lang-support`
+- Open VSX: `Karthikprasadm.sup-lang-support`
+
+Links: [Marketplace](https://marketplace.visualstudio.com/items?itemName=wingspawn.sup-lang-support) · [Open VSX](https://open-vsx.org/extension/Karthikprasadm/sup-lang-support)
+
+CI/Perf
+-------
+
+The CI perf job runs a self-contained inline benchmark using `sup.cli.run_source`, produces `perf.json` at the repository root, and enforces a simple budget gate.
+
 
 See also
 --------

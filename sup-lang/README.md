@@ -6,7 +6,7 @@ An English-like programming language focused on readability with deterministic s
 [![Docs](https://img.shields.io/badge/docs-mkdocs-blue)](https://karthikprasadm.github.io/Sup)
 [![PyPI](https://img.shields.io/pypi/v/sup-lang.svg)](https://pypi.org/project/sup-lang/)
 [![Coverage](https://img.shields.io/codecov/c/github/Karthikprasadm/Sup)](https://codecov.io/gh/Karthikprasadm/Sup)
-[![VS Code](https://img.shields.io/badge/VS%20Code-Extension-blue)](https://marketplace.visualstudio.com/items?itemName=wingspawn.sup-language-support)
+[![VS Code](https://img.shields.io/badge/VS%20Code-Extension-blue)](https://marketplace.visualstudio.com/items?itemName=wingspawn.sup-lang-support)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](../LICENSE)
 
 ![SUP Demo](assets/demo.gif)
@@ -51,6 +51,20 @@ Check version:
 ```
 sup --version
 ```
+
+### Distribution (v2.8.0)
+
+- PyPI: `sup-lang` — `pip install sup-lang`
+- VS Code Marketplace: `wingspawn.sup-lang-support`
+- Open VSX: `Karthikprasadm.sup-lang-support`
+
+Links:
+- Marketplace: https://marketplace.visualstudio.com/items?itemName=wingspawn.sup-lang-support
+- Open VSX: https://open-vsx.org/extension/Karthikprasadm/sup-lang-support
+
+### CI/perf updates
+
+- The perf job in CI now runs an inline benchmark via `sup.cli.run_source` and writes `perf.json` at the repo root, avoiding path/module issues on runners. The budget gate reads the same file.
 
 3. Dev workflow (lint, types, tests):
 ```
