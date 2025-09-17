@@ -73,17 +73,11 @@ jobs:
           python -m pip install -e ./sup-lang
           python -c "import sup, sys; print('sup import ok', sup.__version__)"
       - name: Run benchmarks
-        working-directory: sup-lang
-        env:
-          PYTHONPATH: .
         run: |
-          python -m sup.tools.benchmarks --case arith_loop --iters 5 --json --out ../perf.json
+          python "$GITHUB_WORKSPACE/sup-lang/sup/tools/benchmarks.py" --case arith_loop --iters 5 --json --out "$GITHUB_WORKSPACE/perf.json"
       - name: Enforce performance budgets
-        working-directory: sup-lang
-        env:
-          PYTHONPATH: .
         run: |
-          python -m sup.tools.bench_gates
+          python "$GITHUB_WORKSPACE/sup-lang/sup/tools/bench_gates.py"
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
